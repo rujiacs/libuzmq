@@ -1,7 +1,6 @@
 #ifndef __UZMQ_UTIL_H__
 #define __UZMQ_UTIL_H__
 
-
 #define UZMQ_DEBUG_PRINT
 
 #define UZMQ_UNUSED __attribute__((unused))
@@ -21,13 +20,6 @@
 #else
 #define UZMQ_DEBUG(format, ...)
 #endif /* UZMQ_DEBUG_PRINT */
-
-#define zfree(p) do {	\
-	if (p) {			\
-		free(p);		\
-		p = NULL;		\
-	} } while (0)
-
 
 
 #endif /* __UZMQ_UTIL_H__ */
