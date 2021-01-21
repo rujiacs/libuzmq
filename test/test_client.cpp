@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <string>
-
+#include <sys/time.h>
 #include <zmq.h>
 
 #include "util.hpp"
@@ -167,14 +167,21 @@ static int sendterm(void)
 
 int main(int argc, char **argv)
 {
+	struct timeval tv;
+	double time;
+	long int start_sec, start_usec;
+
 	if (__init() < 0) {
 		UZMQ_ERROR("Failed to init zmq");
 		return 1;
 	}
 
 	if (__start_client() < 0)
-		goto exit;
+		goto main_exit;
 
+	gettimeofday(&tv, NULL);
+	start_sec = tv.tv_sec;
+	start_usec = tv.tv_usec;
 	for (int i = 0; i < 100; i++) {
 		int ret = senddata();
 
@@ -186,8 +193,12 @@ int main(int argc, char **argv)
 	}
 
 	sendterm();
+	gettimeofday(&tv, NULL);
 
-exit:
+	time = tv.tv_sec - start_sec + (tv.tv_usec - start_usec) / 1000000.0;
+	UZMQ_INFO("Total second %lf", time);
+
+main_exit:
 
 	if (sock) {
 		int linger = 0;
