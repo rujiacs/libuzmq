@@ -18,7 +18,7 @@
 #define SERVER_ID	1
 #define CLIENT_ID	8
 
-#define TERM_CODE	123
+#define TERM_CODE	"0123"
 
 #define DATA_SIZE 200
 
@@ -148,9 +148,11 @@ static int senddata(void)
 static int sendterm(void)
 {
 	zmq_msg_t msg;
-	int term = TERM_CODE;
 
-	zmq_msg_init_data(&msg, &term, sizeof(int), NULL, NULL, SERVER_ID);
+	snprintf(data, 5, "%s", TERM_CODE);
+
+	UZMQ_DEBUG("Send TERM");
+	zmq_msg_init_data(&msg, data, 4, NULL, NULL, SERVER_ID);
 
 	while (true) {
 		if (zmq_msg_send(&msg, sock, 0) == sizeof(int)) break;

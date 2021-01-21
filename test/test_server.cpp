@@ -18,9 +18,9 @@
 #define SERVER_ID	1
 #define CLIENT_ID	8
 
-#define TERM_CODE	123
-
 #define DATA_SIZE 200
+
+#define TERM_CODE "0123"
 
 using namespace std;
 
@@ -104,17 +104,22 @@ static int recvdata(void)
 		goto free_return;
 	}
 
-	if (recv_bytes != DATA_SIZE && recv_bytes != sizeof(int)) {
+	if (recv_bytes != DATA_SIZE && recv_bytes != strlen(TERM_CODE)) {
 		UZMQ_ERROR("Wrong msg size %lu", recv_bytes);
 		ret = -1;
 		goto free_return;
 	}
 
-	if (recv_bytes == sizeof(int)) {
-		int *code = (int*)zmq_msg_data(msg);
+	if (recv_bytes == strlen(TERM_CODE)) {
+		char code[5] = {0};
 
-		UZMQ_DEBUG("Recv code %d", *code);
-		ret = *code;
+		strncpy(code, rx_data, strlen(TERM_CODE));
+		UZMQ_DEBUG("Recv code %s", code);
+
+		if (strcmp(code, TERM_CODE) == 0)
+			ret = 1;
+		else
+			ret = -1;
 	}
 	else {
 		ret = 0;
@@ -168,7 +173,7 @@ int main(int argc, char **argv)
 				break;
 		}
 
-		if (ret == TERM_CODE) {
+		if (ret == 1) {
 			UZMQ_DEBUG("recv terminate cmd");
 			break;
 		}
