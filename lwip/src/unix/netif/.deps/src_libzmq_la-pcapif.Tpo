@@ -1,0 +1,4 @@
+lwip/src/unix/netif/src_libzmq_la-pcapif.lo: lwip/src/unix/netif/pcapif.c \
+ /usr/include/stdc-predef.h
+
+/usr/include/stdc-predef.h:
