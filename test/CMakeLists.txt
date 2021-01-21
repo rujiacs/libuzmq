@@ -6,6 +6,7 @@ PROJECT(tests)
 
 set(tests
         test_server
+		test_client
 )
 
 # add library and include dirs for all targets
