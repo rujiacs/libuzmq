@@ -525,7 +525,6 @@ setup_tcp(struct netconn *conn)
 #if LWIP_NETML
   if (!pcb->is_bypass && conn->is_bypass) {
 	pcb->is_bypass = conn->is_bypass;
-	tcp_init_netml(pcb);
   } if (conn->local_id != UINT16_MAX)
 	pcb->local_id = conn->local_id;
 #endif

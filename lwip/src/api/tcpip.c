@@ -70,7 +70,9 @@ sys_mutex_t lock_tcpip_core;
 static void tcpip_thread_handle_msg(struct tcpip_msg *msg);
 
 #if LWIP_NETML
-void *seq_history = NULL;
+#include "lwip/priv/tcp_priv.h"
+#include <rte_hash.h>
+#include <rte_hash_crc.h>
 #endif
 
 #if !LWIP_TIMERS
@@ -211,6 +213,24 @@ tcpip_thread(void *arg)
   LOCK_TCPIP_CORE();
   if (tcpip_init_done != NULL) {
     tcpip_init_done(tcpip_init_done_arg);
+  }
+
+  struct rte_hash_parameters params;
+  struct rte_hash *tbl = NULL;
+
+  params.entries = NETML_MAX_SEQ_NUM;
+  params.name = "SEQ_0";
+  params.hash_func = rte_hash_crc;
+  params.key_len = sizeof(uint32_t);
+
+  tbl = rte_hash_create(&params);
+  if (!tbl) {
+  	fprintf(stdout, "[%s][%d]: failed to create seq table 0\n",
+					__FILE__, __LINE__);
+  }
+  else {
+  	seq_tbls[0] = tbl;
+	next_seq_tbl ++;
   }
 
   __init_arp_entries();
@@ -696,14 +716,14 @@ tcpip_init(tcpip_init_done_fn initfunc, void *arg)
   }
 #endif /* LWIP_TCPIP_CORE_LOCKING */
 
-  if (tcpip_init_done != NULL) {
-  	tcpip_init_done(tcpip_init_done_arg);
-  }
-
-  __init_arp_entries();
+//  if (tcpip_init_done != NULL) {
+//  	tcpip_init_done(tcpip_init_done_arg);
+//  }
+//
+//  __init_arp_entries();
 
 //  LOCK_TCPIP_CORE();
-//  sys_thread_new(TCPIP_THREAD_NAME, tcpip_thread, NULL, TCPIP_THREAD_STACKSIZE, TCPIP_THREAD_PRIO);
+  sys_thread_new(TCPIP_THREAD_NAME, tcpip_thread, NULL, TCPIP_THREAD_STACKSIZE, TCPIP_THREAD_PRIO);
 }
 
 /**

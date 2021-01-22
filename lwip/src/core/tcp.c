@@ -118,6 +118,9 @@
 #if LWIP_NETML
 #include <rte_hash.h>
 #include <rte_hash_crc.h>
+
+void *seq_tbls[NETML_MAX_SEQ_TBLS] = {NULL};
+u8_t next_seq_tbl = 0;
 #endif
 
 #ifdef LWIP_HOOK_FILENAME
@@ -1872,44 +1875,6 @@ tcp_handle_closepend(void)
   }
 }
 
-int
-tcp_init_netml(struct tcp_pcb *pcb)
-{
-	if (pcb->is_init_netml && pcb->is_bypass)
-		return 0;
-	pcb->is_init_netml = 1;
-
-	// initialize internal connection list
-	uint16_t t = 0;
-	for (t = 0; t < NETML_MAX_NODE; t++) {
-		struct tcp_internal_id *ic = &(pcb->internal_conn[t]);
-
-		ic->nxtwish = 1;
-		ic->intseq = 1;
-		ic->inttunl = 1;
-		ic->intack = 1;
-		ic->inid = t + 8;
-#if TCP_QUEUE_OOSEQ
-		ic->ooseq = NULL;
-#endif
-	}
-
-	struct rte_hash_parameters params;
-
-	params.entries = NETML_MAX_SEQ_NUM;
-	params.name = "SEQ_HISTORY";
-	params.hash_func = rte_hash_crc;
-	params.key_len = sizeof(uint32_t);
-
-	pcb->seq_history = rte_hash_create(&params);
-	if (!pcb->seq_history) {
-		fprintf(stderr, "[%s][%d]: failed to create hash table for seq\n",
-						__FILE__, __LINE__);
-		return -1;
-	}
-	return 0;
-}
-
 /**
  * Allocate a new tcp_pcb structure.
  *
@@ -1995,6 +1960,21 @@ tcp_alloc(u8_t prio)
 	pcb->local_id = UINT16_MAX;
 	pcb->is_init_netml = 0;
 
+	// initialize internal connection list
+	uint16_t t = 0;
+	for (t = 0; t < NETML_MAX_NODE; t++) {
+		struct tcp_internal_id *ic = &(pcb->internal_conn[t]);
+
+		ic->nxtwish = 1;
+		ic->intseq = 1;
+		ic->inttunl = 1;
+		ic->intack = 1;
+		ic->inid = t + 8;
+#if TCP_QUEUE_OOSEQ
+		ic->ooseq = NULL;
+#endif
+	}
+	pcb->seq_history = NULL;
 #endif
 
     /* RFC 5681 recommends setting ssthresh abritrarily high and gives an example

@@ -67,6 +67,7 @@
 
 #ifdef LWIP_NETML
 #include <rte_hash.h>
+#include <rte_hash_crc.h>
 #endif
 
 /** Initial CWND calculation as defined RFC 2581 */
@@ -204,6 +205,40 @@ tcp_receive_data(struct tcp_pcb *pcb)
   u32_t hkey;
   struct hmap_node *hnode, *tmphnode;
   u8_t init_flags = TCPH_OFFSET_FLAGS(tcphdr);
+
+  if (!pcb->is_init_netml) {
+  	fprintf(stdout, "[%s][%d]: init seq_history\n", __FILE__, __LINE__);
+	if (next_seq_tbl >= NETML_MAX_SEQ_TBLS) {
+		fprintf(stdout, "[%s][%d]: doesn't have enough seq tables\n",
+						__FILE__, __LINE__);
+	}
+	else {
+		fprintf(stdout, "[%s][%d]: pcb %p use %u-th tbl\n",
+						__FILE__, __LINE__, (void*)pcb, next_seq_tbl);
+
+		if (seq_tbls[next_seq_tbl] == NULL) {
+			struct rte_hash_parameters params;
+			struct rte_hash *tbl = NULL;
+			char name[6] = {0};
+
+			sprintf(name, "SEQ_%u", next_seq_tbl);
+			params.entries = NETML_MAX_SEQ_NUM;
+			params.name = name;
+			params.hash_func = rte_hash_crc;
+			params.key_len = sizeof(uint32_t);
+
+			tbl = rte_hash_create(&params);
+			if (!tbl) {
+				fprintf(stdout, "[%s][%d]: failed to create seq table %u\n",
+								__FILE__, __LINE__, next_seq_tbl);
+			}
+			seq_tbls[next_seq_tbl] = tbl;
+		}
+		pcb->seq_history = seq_tbls[next_seq_tbl];
+		next_seq_tbl ++;
+	}
+	pcb->is_init_netml = 1;
+  }
 
   if (pcb->seq_history) {
 	  cur_tsc = rte_rdtsc();
@@ -1233,7 +1268,6 @@ tcp_listen_input(struct tcp_pcb_listen *pcb)
 #if LWIP_NETML
 	if (is_bypass) {
 		npcb->is_bypass = is_bypass;
-		tcp_init_netml(npcb);
 	}
 #endif /* LWIP_NETML */
 
