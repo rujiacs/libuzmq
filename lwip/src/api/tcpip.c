@@ -230,7 +230,6 @@ tcpip_thread(void *arg)
   }
   else {
   	seq_tbls[0] = tbl;
-	next_seq_tbl ++;
   }
 
   __init_arp_entries();
