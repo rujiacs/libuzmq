@@ -49,6 +49,19 @@ __sockets_server_inline(int sock, struct lwip_sockaddr_in *caddr)
 
 	for (i = 0; i < TEST_LOOP; i++) {
 		int ret_len = TEST_TXRX_BUFSIZE;
+		int read_len = 0;
+
+		while (read_len >= ret_len) {
+			ret = lwip_recv(sock, txbuf, TEST_TXRX_BUFSIZE, 0);
+			if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+				continue;
+			if (ret < 0) {
+				fprintf(stdout, "[%s][%d]: failed to recv data, err %d\n",
+								__FILE__, __LINE__, errno);
+				goto close_server;
+			}
+			read_len += ret;
+		}
 
 		while (ret_len > 0) {
 			ret = lwip_send_netml(sock, txbuf, ret_len, LWIP_MSG_NETML, 8);
@@ -62,6 +75,8 @@ __sockets_server_inline(int sock, struct lwip_sockaddr_in *caddr)
 		}
 		usleep(50000);
 	}
+
+close_server:
 //	while (1) {}
 	lwip_close(sock);
 }
@@ -131,49 +146,42 @@ sockets_client(const char *remote_ip, u16_t remote_port)
   fprintf(stdout, "Connected.\n");
   __set_nonblocking(sock);
 
-	fd_set readset, writeset, errset;
-	FD_ZERO(&readset);
-	FD_ZERO(&writeset);
-	FD_ZERO(&errset);
-	FD_SET(sock, &readset);
-
 	struct timeval tv;
 	tv.tv_sec = 10;
 	tv.tv_usec = 0;
 
+	int i = 0;
+
 	len = TEST_TXRX_BUFSIZE * TEST_LOOP;
-	while (1) {
-		fprintf(stdout, "-------------select-----------\n");
-		fd_set readset, writeset, errset;
-		FD_ZERO(&readset);
-		FD_ZERO(&writeset);
-		FD_ZERO(&errset);
-		FD_SET(sock, &readset);
-		ret = lwip_select(sock + 1, &readset, &writeset, &errset, &tv);
-		fprintf(stdout, "----------select %d -----------\n", ret);
+	for (i = 0; i < TEST_LOOP; i++) {
+		int send_ret = 0, read_len = 0;
 
-		if (ret > 0) {
-			if (FD_ISSET(sock, &readset)) {
-				ret = lwip_recv(sock, rxbuf, TEST_TXRX_BUFSIZE, 0);
-				if (ret < 0 && errno != EAGAIN) {
-					fprintf(stderr, "failed to recv\n");
-					break;
-				}
-				else if (ret == 0) {
-					fprintf(stdout, "connection closed by peer\n");
-					break;
-				}
-
-				fprintf(stdout, "recv %d bytes, remain %d\n",
-								ret, len - ret);
-				len -= ret;
-				if (len <= 0)
-					break;
+		while (send_ret > 0) {
+			ret = lwip_send_netml(sock, rxbuf, send_ret, LWIP_MSG_NETML, 9);
+			if (ret == -1)
+				fprintf(stderr, "failed to send data, err %d\n", errno);
+			else {
+				fprintf(stdout, "send %d-th data, len %d(%d)\n",
+								i, ret, (send_ret - ret));
+				send_ret -= ret;
 			}
 		}
+
+		while (read_len >= TEST_TXRX_BUFSIZE) {
+			ret = lwip_recv(sock, rxbuf, TEST_TXRX_BUFSIZE, 0);
+
+			if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+				continue;
+			if (ret < 0) {
+				fprintf(stdout, "[%s][%d]: failed to recv data, err %d\n",
+								__FILE__, __LINE__, errno);
+				goto close_client;
+			}
+			read_len += ret;
+		}
+
 	}
 
-	fprintf(stdout, "recv %s\n", rxbuf);
 //  sys_msleep(100);
 //
 //  len = strlen(testdata);
@@ -192,6 +200,7 @@ sockets_client(const char *remote_ip, u16_t remote_port)
 //	if (len <= 0)
 //		break;
 //}
+close_client:
   lwip_close(sock);
 }
 
