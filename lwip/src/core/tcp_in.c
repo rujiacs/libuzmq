@@ -253,8 +253,6 @@ tcp_receive_data(struct tcp_pcb *pcb)
 		while (rte_hash_iterate(pcb->seq_history, (const void **)&nextk, &nextv, &iter) >= 0) {
 			uint64_t ts = (uint64_t)(uintptr_t)nextv;
 
-			fprintf(stdout, "[%s][%d]: seq %u recv at %lu, %lu\n",
-							__FILE__, __LINE__, *nextk, ts, (cur_tsc - ts));
 			if (cur_tsc - ts >= CPU_HZ) {
 				rte_hash_del_key(pcb->seq_history, nextk);
 				nb_clean ++;
