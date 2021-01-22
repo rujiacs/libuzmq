@@ -28,15 +28,15 @@ static unsigned is_init = 0;
 static void
 lwip_port_init(void *arg)
 {
-	sys_sem_t *sem;
-
-	sem = (sys_sem_t *)arg;
+//	sys_sem_t *sem;
+//
+//	sem = (sys_sem_t *)arg;
 
 	netif_add(&netdev, &ipaddr, &netmask, &gateway, NULL, dpdk_device_init, tcpip_input);
 	netif_set_default(&netdev);
 	netif_set_up(&netdev);
 
-	sys_sem_signal(sem);
+//	sys_sem_signal(sem);
 }
 
 int zmq_lwip_init(const char *ip, const char *gw, const char *mask) {
@@ -69,18 +69,18 @@ int zmq_lwip_init(const char *ip, const char *gw, const char *mask) {
 	fprintf(stdout, "Lwip TCP/IP initialize: %s(%u) %s %s\n",
 					ip, ipaddr.addr, gw, mask);
 
-	sys_sem_t sem;
-
-	if (sys_sem_new(&sem, 0) != ERR_OK) {
-		fprintf(stderr, "Failed to create semaphore\n");
-		return -1;
-	}
-
-	tcpip_init(lwip_port_init, &sem);
+//	sys_sem_t sem;
+//
+//	if (sys_sem_new(&sem, 0) != ERR_OK) {
+//		fprintf(stderr, "Failed to create semaphore\n");
+//		return -1;
+//	}
+//
+	tcpip_init(lwip_port_init, NULL);
 
 	fprintf(stdout, "Lwip TCP/IP initialized\n");
-	sys_sem_wait(&sem);
-	sys_sem_free(&sem);
+//	sys_sem_wait(&sem);
+//	sys_sem_free(&sem);
 
 
 	return 0;

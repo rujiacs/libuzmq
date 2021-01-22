@@ -609,15 +609,6 @@ set (cxx-sources
 		../lwip/src/core/ipv4/ip4_frag.c
 		../lwip/src/core/ipv4/ip4.c
 		../lwip/src/core/ipv4/ip4_addr.c
-		../lwip/src/core/ipv6/dhcp6.c
-		../lwip/src/core/ipv6/ethip6.c
-		../lwip/src/core/ipv6/icmp6.c
-		../lwip/src/core/ipv6/inet6.c
-		../lwip/src/core/ipv6/ip6.c
-		../lwip/src/core/ipv6/ip6_addr.c
-		../lwip/src/core/ipv6/ip6_frag.c
-		../lwip/src/core/ipv6/mld6.c
-		../lwip/src/core/ipv6/nd6.c
 		../lwip/src/api/api_lib.c
 		../lwip/src/api/api_msg.c
 		../lwip/src/api/err.c
@@ -634,6 +625,15 @@ set (cxx-sources
 		../lwip/src/unix/netif/dpdkif.c
 )
 
+#		../lwip/src/core/ipv6/dhcp6.c
+#		../lwip/src/core/ipv6/ethip6.c
+#		../lwip/src/core/ipv6/icmp6.c
+#		../lwip/src/core/ipv6/inet6.c
+#		../lwip/src/core/ipv6/ip6.c
+#		../lwip/src/core/ipv6/ip6_addr.c
+#		../lwip/src/core/ipv6/ip6_frag.c
+#		../lwip/src/core/ipv6/mld6.c
+#		../lwip/src/core/ipv6/nd6.c
 set(RTE_SDK				$ENV{RTE_SDK})
 set(RTE_TARGET			$ENV{RTE_TARGET})
 set(DPDK_INCLUDE_DIRS	"${RTE_SDK}/${RTE_TARGET}/include")

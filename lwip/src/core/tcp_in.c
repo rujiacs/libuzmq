@@ -729,17 +729,17 @@ tcp_input(struct pbuf *p, struct netif *inp)
 #if LWIP_NETML
   flags = TCPH_FLAGS(tcphdr);
   netml_flags = TCPH_OFFSET_FLAGS(tcphdr);
-//  fprintf(stdout, "[%s][%d]: recv pkt %s:%u->",
-//					__FILE__, __LINE__,
-//					ip4addr_ntoa(ip_current_src_addr()),
-//					lwip_ntohs(tcphdr->src));
-//  fprintf(stdout, "%s:%u, seq %u, ack %u, len %u,",
-//					ip4addr_ntoa(ip_current_dest_addr()),
-//					lwip_ntohs(tcphdr->dest),
-//					lwip_ntohl(tcphdr->seqno),
-//					lwip_ntohl(tcphdr->ackno),
-//					p->tot_len);
-//  tcp_debug_print_netml(tcphdr);
+  fprintf(stdout, "[%s][%d]: recv pkt %s:%u->",
+					__FILE__, __LINE__,
+					ip4addr_ntoa(ip_current_src_addr()),
+					lwip_ntohs(tcphdr->src));
+  fprintf(stdout, "%s:%u, seq %u, ack %u, len %u,",
+					ip4addr_ntoa(ip_current_dest_addr()),
+					lwip_ntohs(tcphdr->dest),
+					lwip_ntohl(tcphdr->seqno),
+					lwip_ntohl(tcphdr->ackno),
+					p->tot_len);
+  tcp_debug_print_netml(tcphdr);
 
   /* flags: 10xx bypass */
   is_bypass = is_ctl = 0;

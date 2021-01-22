@@ -8,11 +8,11 @@
 
 #include "util.hpp"
 
-#define LOCAL_IP "192.168.56.21"
+#define LOCAL_IP "192.168.57.21"
 #define LOCAL_MASK "255.255.255.0"
-#define LOCAL_GW "192.168.56.1"
+#define LOCAL_GW "192.168.57.1"
 
-#define SERVER_IP "192.168.56.21"
+#define SERVER_IP "192.168.57.21"
 #define SERVER_PORT "9123"
 
 #define SERVER_ID	1

@@ -8,11 +8,11 @@
 
 #include "util.hpp"
 
-#define LOCAL_IP "192.168.56.22"
+#define LOCAL_IP "192.168.57.22"
 #define LOCAL_MASK "255.255.255.0"
-#define LOCAL_GW "192.168.56.1"
+#define LOCAL_GW "192.168.57.1"
 
-#define SERVER_IP "192.168.56.21"
+#define SERVER_IP "192.168.57.21"
 #define SERVER_PORT "9123"
 
 #define SERVER_ID	1
@@ -182,7 +182,8 @@ int main(int argc, char **argv)
 	gettimeofday(&tv, NULL);
 	start_sec = tv.tv_sec;
 	start_usec = tv.tv_usec;
-	for (int i = 0; i < 100; i++) {
+	for (int i = 0; i < 2; i++) {
+		fprintf(stdout, "[%s][%d]: send %d-th data\n", __FILE__, __LINE__, i);
 		int ret = senddata();
 
 		if (ret < 0)

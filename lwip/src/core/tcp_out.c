@@ -1795,12 +1795,12 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb, struct netif *netif
    wnd fields remain. */
   seg->tcphdr->ackno = lwip_htonl(pcb->rcv_nxt);
 
-//  fprintf(stdout, "[%s][%d]: send pkt %u->%u, seq %u, ack %u, ",
-//				  __FILE__, __LINE__, lwip_ntohs(seg->tcphdr->src),
-//				  lwip_ntohs(seg->tcphdr->dest),
-//				  lwip_ntohl(seg->tcphdr->seqno),
-//				  lwip_ntohl(seg->tcphdr->ackno));
-//  tcp_debug_print_netml(seg->tcphdr);
+  fprintf(stdout, "[%s][%d]: send pkt %u->%u, seq %u, ack %u, ",
+				  __FILE__, __LINE__, lwip_ntohs(seg->tcphdr->src),
+				  lwip_ntohs(seg->tcphdr->dest),
+				  lwip_ntohl(seg->tcphdr->seqno),
+				  lwip_ntohl(seg->tcphdr->ackno));
+  tcp_debug_print_netml(seg->tcphdr);
 
   /* advertise our receive window size in this TCP segment */
 #if LWIP_WND_SCALE
@@ -2363,8 +2363,8 @@ tcp_output_control_segment(const struct tcp_pcb *pcb, struct pbuf *p,
       tos = pcb->tos;
 
 #if LWIP_NETML
-//	  fprintf(stdout, "[%s][%d]: send ctl packet (%u), ", __FILE__, __LINE__, p->tot_len);
-//	  tcp_debug_print_netml((struct tcp_hdr *)p->payload);
+	  fprintf(stdout, "[%s][%d]: send ctl packet (%u), ", __FILE__, __LINE__, p->tot_len);
+	  tcp_debug_print_netml((struct tcp_hdr *)p->payload);
 #endif
 	} else {
       /* Send output with hardcoded TTL/HL since we have no access to the pcb */

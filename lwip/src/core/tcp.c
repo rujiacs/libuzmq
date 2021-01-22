@@ -113,6 +113,7 @@
 #include "lwip/nd6.h"
 
 #include <string.h>
+#include <pthread.h>
 
 #if LWIP_NETML
 #include "mlib/hmap.h"
@@ -998,6 +999,9 @@ tcp_recved(struct tcp_pcb *pcb, u16_t len)
   if (!pcb->is_bypass)
 	return;
 
+  fprintf(stdout, "[%s][%d][%lu]: app recv %u-byte data\n",
+				  __FILE__, __LINE__, pthread_self(), len);
+
   LWIP_ASSERT_CORE_LOCKED();
 
   LWIP_ERROR("tcp_recved: invalid pcb", pcb != NULL, return);
@@ -1023,7 +1027,7 @@ tcp_recved(struct tcp_pcb *pcb, u16_t len)
    * events (or more window to be available later) */
   if (wnd_inflation >= TCP_WND_UPDATE_THRESHOLD) {
     tcp_ack_now(pcb);
-    tcp_output(pcb);
+//    tcp_output(pcb);
   }
 
   LWIP_DEBUGF(TCP_DEBUG, ("tcp_recved: received %"U16_F" bytes, wnd %"TCPWNDSIZE_F" (%"TCPWNDSIZE_F").\n",

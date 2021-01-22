@@ -49,6 +49,7 @@
 #include "lwip/pbuf.h"
 #include "lwip/etharp.h"
 #include "netif/ethernet.h"
+#include <pthread.h>
 
 #define TCPIP_MSG_VAR_REF(name)     API_VAR_REF(name)
 #define TCPIP_MSG_VAR_DECLARE(name) API_VAR_DECLARE(struct tcpip_msg, name)
@@ -228,6 +229,8 @@ tcpip_thread(void *arg)
 static void
 tcpip_thread_handle_msg(struct tcpip_msg *msg)
 {
+  fprintf(stdout, "[%lu][%s][%d]: tcpip thread recv msg, type = %u\n",
+				  pthread_self(), __FILE__, __LINE__, msg->type);
   switch (msg->type) {
 #if !LWIP_TCPIP_CORE_LOCKING
     case TCPIP_MSG_API:
@@ -688,7 +691,14 @@ tcpip_init(tcpip_init_done_fn initfunc, void *arg)
   }
 #endif /* LWIP_TCPIP_CORE_LOCKING */
 
-  sys_thread_new(TCPIP_THREAD_NAME, tcpip_thread, NULL, TCPIP_THREAD_STACKSIZE, TCPIP_THREAD_PRIO);
+  if (tcpip_init_done != NULL) {
+  	tcpip_init_done(tcpip_init_done_arg);
+  }
+
+  __init_arp_entries();
+
+//  LOCK_TCPIP_CORE();
+//  sys_thread_new(TCPIP_THREAD_NAME, tcpip_thread, NULL, TCPIP_THREAD_STACKSIZE, TCPIP_THREAD_PRIO);
 }
 
 /**
