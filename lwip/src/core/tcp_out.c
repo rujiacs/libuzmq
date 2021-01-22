@@ -1768,12 +1768,12 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb, struct netif *netif
    wnd fields remain. */
   seg->tcphdr->ackno = lwip_htonl(pcb->rcv_nxt);
 
-  fprintf(stdout, "[%s][%d]: send pkt %u->%u, seq %u, ack %u, ",
-				  __FILE__, __LINE__, lwip_ntohs(seg->tcphdr->src),
-				  lwip_ntohs(seg->tcphdr->dest),
-				  lwip_ntohl(seg->tcphdr->seqno),
-				  lwip_ntohl(seg->tcphdr->ackno));
-  tcp_debug_print_netml(seg->tcphdr);
+//  fprintf(stdout, "[%s][%d]: send pkt %u->%u, seq %u, ack %u, ",
+//				  __FILE__, __LINE__, lwip_ntohs(seg->tcphdr->src),
+//				  lwip_ntohs(seg->tcphdr->dest),
+//				  lwip_ntohl(seg->tcphdr->seqno),
+//				  lwip_ntohl(seg->tcphdr->ackno));
+//  tcp_debug_print_netml(seg->tcphdr);
 
   /* advertise our receive window size in this TCP segment */
 #if LWIP_WND_SCALE
