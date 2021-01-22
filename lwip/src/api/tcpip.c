@@ -49,6 +49,7 @@
 #include "lwip/pbuf.h"
 #include "lwip/etharp.h"
 #include "netif/ethernet.h"
+#include "lwip/tcp.h"
 #include <pthread.h>
 
 #define TCPIP_MSG_VAR_REF(name)     API_VAR_REF(name)
@@ -67,6 +68,10 @@ sys_mutex_t lock_tcpip_core;
 #endif /* LWIP_TCPIP_CORE_LOCKING */
 
 static void tcpip_thread_handle_msg(struct tcpip_msg *msg);
+
+#if LWIP_NETML
+void *seq_history = NULL;
+#endif
 
 #if !LWIP_TIMERS
 /* wait for a message with timers disabled (e.g. pass a timer-check trigger into tcpip_thread) */

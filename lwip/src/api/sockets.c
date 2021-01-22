@@ -47,6 +47,7 @@
 #include "lwip/igmp.h"
 #include "lwip/inet.h"
 #include "lwip/tcp.h"
+#include "lwip/priv/tcp_priv.h"
 #include "lwip/raw.h"
 #include "lwip/udp.h"
 #include "lwip/memp.h"
@@ -630,8 +631,10 @@ int lwip_setlocalid(int s, int id) {
 
 	if (id == SCHEDULAR_ID) {
 		sock->conn->is_bypass = 1;
-		if (sock->conn->pcb.tcp)
+		if (sock->conn->pcb.tcp) {
 			sock->conn->pcb.tcp->is_bypass = 1;
+			tcp_init_netml(sock->conn->pcb.tcp);
+		}
 //		fprintf(stdout, "[%s][%d]: sock %d is bypass\n",
 //						__FILE__, __LINE__, s);
 	}
@@ -649,8 +652,10 @@ int lwip_setbypass(int s) {
 	}
 
 	sock->conn->is_bypass = 1;
-	if (sock->conn->pcb.tcp)
+	if (sock->conn->pcb.tcp) {
 		sock->conn->pcb.tcp->is_bypass = 1;
+		tcp_init_netml(sock->conn->pcb.tcp);
+	}
 	return 0;
 }
 

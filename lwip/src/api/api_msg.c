@@ -53,6 +53,7 @@
 #include "lwip/dns.h"
 #include "lwip/mld6.h"
 #include "lwip/priv/tcpip_priv.h"
+#include "lwip/priv/tcp_priv.h"
 
 #if LWIP_NETML
 #include "lwip/netml.h"
@@ -522,9 +523,10 @@ setup_tcp(struct netconn *conn)
   pcb = conn->pcb.tcp;
 
 #if LWIP_NETML
-  if (!pcb->is_bypass && conn->is_bypass)
+  if (!pcb->is_bypass && conn->is_bypass) {
 	pcb->is_bypass = conn->is_bypass;
-  if (conn->local_id != UINT16_MAX)
+	tcp_init_netml(pcb);
+  } if (conn->local_id != UINT16_MAX)
 	pcb->local_id = conn->local_id;
 #endif
 

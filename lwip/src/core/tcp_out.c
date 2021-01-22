@@ -85,6 +85,10 @@
 #include LWIP_HOOK_FILENAME
 #endif
 
+#ifdef LWIP_NETML
+#include <rte_hash.h>
+#endif
+
 /* Allow to add custom TCP header options by defining this hook */
 #ifdef LWIP_HOOK_TCP_OUT_TCPOPT_LENGTH
 #define LWIP_TCP_OPT_LENGTH_SEGMENT(flags, pcb) LWIP_HOOK_TCP_OUT_TCPOPT_LENGTH(pcb, LWIP_TCP_OPT_LENGTH(flags))
@@ -402,38 +406,7 @@ tcp_write_netml(struct tcp_pcb *pcb, const void *arg, u16_t len,
   if (err != ERR_OK)
 	return err;
 
-  hkey = remote_id;
-  hnode = hmap_first_with_hash(&(pcb->seq_tables), hkey);
-  if (!hnode) {
-  	struct kv_pair *pair = (struct kv_pair *)malloc(sizeof(struct kv_pair));
-
-	if (!pair) {
-		fprintf(stderr, "[%s][%d]: out of memory\n", __FILE__, __LINE__);
-		return ERR_MEM;
-	}
-
-	tmpworker = (struct tcp_internal_id*)memp_malloc(MEMP_TCP_INTERNAL_ID);
-	if (!tmpworker) {
-		fprintf(stderr, "[%s][%d]: out of memory\n", __FILE__, __LINE__);
-		free(pair);
-		pair = NULL;
-		return ERR_MEM;
-	}
-	memset(tmpworker, 0, sizeof(struct tcp_internal_id));
-	tmpworker->inid = remote_id;
-	tmpworker->nxtwish = 1;
-	tmpworker->intseq = 1;
-	tmpworker->inttunl = 1;
-	tmpworker->intack = 1;
-	pair->value = (uintptr_t)(void*)tmpworker;
-	hmap_insert(&(pcb->seq_tables), (struct hmap_node *)pair, hkey);
-
-//	fprintf(stdout, "[%s][%d]: create seq table for %u\n",
-//					__FILE__, __LINE__, remote_id);
-  }
-  else {
-  	tmpworker = (struct tcp_internal_id *)(((struct kv_pair *)hnode)->value);
-  }
+  tmpworker = &pcb->internal_conn[remote_id];
 
 #if LWIP_TCP_TIMESTAMPS
   if ((pcb->flags & TF_TIMESTAMP)) {

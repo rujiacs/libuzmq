@@ -47,7 +47,8 @@
 
 #define LWIP_NETML 1
 #define SCHEDULAR_ID 1
-#define CPU_HZ (3.4*1000*1000*1000)
+#define CPU_HZ 		(2400000000)
+#define CLEAN_HZ 	(4800000000)
 
 #define LWIP_DEBUG 1
 

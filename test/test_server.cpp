@@ -15,8 +15,8 @@
 #define SERVER_IP "192.168.57.21"
 #define SERVER_PORT "9123"
 
-#define SERVER_ID	1
-#define CLIENT_ID	8
+#define SERVER_ID	8
+#define CLIENT_ID	9
 
 #define DATA_SIZE 200
 
@@ -142,7 +142,7 @@ static int senddata(void)
 	zmq_msg_init_data(&msg, data, DATA_SIZE, NULL, NULL, CLIENT_ID);
 
 	while (true) {
-		if (zmq_msg_send(&msg, sock, 0) == DATA_SIZE) break;
+		if (zmq_msg_send(&msg, sock, ZMQ_DATA) == DATA_SIZE) break;
 		if (errno == EINTR) continue;
 
 		UZMQ_ERROR("Failed to send %u-byte data", DATA_SIZE);

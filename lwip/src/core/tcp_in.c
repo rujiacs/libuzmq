@@ -65,6 +65,10 @@
 #include LWIP_HOOK_FILENAME
 #endif
 
+#ifdef LWIP_NETML
+#include <rte_hash.h>
+#endif
+
 /** Initial CWND calculation as defined RFC 2581 */
 #define LWIP_TCP_CALC_INITIAL_CWND(mss) ((tcpwnd_size_t)LWIP_MIN((4U * (mss)), LWIP_MAX((2U * (mss)), 4380U)))
 
@@ -201,61 +205,34 @@ tcp_receive_data(struct tcp_pcb *pcb)
   struct hmap_node *hnode, *tmphnode;
   u8_t init_flags = TCPH_OFFSET_FLAGS(tcphdr);
 
-  cur_tsc = rte_rdtsc();
-  if (pcb->last_tsc == 0){
-	pcb->last_tsc = cur_tsc;
-  } else if (cur_tsc - pcb->last_tsc >= 5*CPU_HZ) {
-#if TCP_INPUT_DEBUG
-	u8_t cleaned = 0;
-	LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_receive_data: enter packet history clean!!!\n"));
-#endif /* TCP_INPUT_DEBUG */
-    historynum=hmap_count(&(pcb->packet_history));
-    hnode = hmap_first(&(pcb->packet_history));
-	while(hnode!=NULL){
-	  if(cur_tsc - ((struct kv_pair* )hnode)->value >= CPU_HZ){
-	  	tmphnode = hnode;
-	  	hnode = hmap_next(&(pcb->packet_history),hnode);
-		hmap_remove(&(pcb->packet_history), tmphnode);
-#if TCP_INPUT_DEBUG
-	    cleaned++;
-#endif /* TCP_INPUT_DEBUG */
-	  } else {
-	    hnode = hmap_next(&(pcb->packet_history),hnode);
-	  }
-	}
-	pcb->last_tsc = cur_tsc;
-#if TCP_INPUT_DEBUG
-	LWIP_DEBUGF(TCP_INPUT_DEBUG, ("packet history clean has done. %"U16_F" of %"U16_F" packet history are removed.\n", cleaned, historynum));
-#endif /* TCP_INPUT_DEBUG */
+  if (pcb->seq_history) {
+	  cur_tsc = rte_rdtsc();
+	  if (pcb->last_tsc == 0){
+		pcb->last_tsc = cur_tsc;
+  	} else if (cur_tsc - pcb->last_tsc >= CLEAN_HZ) {
+		unsigned nb_clean = 0;
+		const uint32_t *nextk;
+		void *nextv = NULL;
+		uint32_t iter = 0;
+
+		while (rte_hash_iterate(pcb->seq_history, (const void **)&nextk, &nextv, &iter) >= 0) {
+			uint64_t ts = (uint64_t)(uintptr_t)nextv;
+
+			if (cur_tsc - ts >= CPU_HZ) {
+				rte_hash_del_key(pcb->seq_history, &nextk);
+				nb_clean ++;
+			}
+		}
+
+		fprintf(stdout, "[%s][%d]: clean %u seqno in seq_history\n",
+						__FILE__, __LINE__, nb_clean);
+
+		pcb->last_tsc = cur_tsc;
+  	}
   }
 
   /* find out the corresponding worker. */
-  hnode=NULL;
-  hkey = (u32_t)internalhdr->src_id;
-  hnode = hmap_first_with_hash(&(pcb->seq_tables), hkey);
-  if(hnode == NULL){
-    struct kv_pair *pair = (struct kv_pair *)malloc(sizeof(struct kv_pair));
-    if ( pair == NULL) {
-	  LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_receive_data: out-of-memory\n"));
-	  return;
-	}
-    if ((worker = (struct tcp_internal_id *)memp_malloc(MEMP_TCP_INTERNAL_ID)) == NULL) {
-      LWIP_DEBUGF(TCP_OUTPUT_DEBUG | 2, ("worker struct created failed: no memory.\n"));
-	  free(pair);
-      return;
-    }
-
-    worker->nxtwish=1;
-	worker->intseq=1;
-	worker->inttunl=1;
-	worker->intack=1;
-    worker->inid=internalhdr->src_id;
-    pair->value = (uintptr_t)(void*)worker;
-    hmap_insert(&(pcb->seq_tables), (struct hmap_node *)pair, hkey);
-
-  } else {
-    worker = (struct tcp_internal_id *)(((struct kv_pair *)hnode)->value);
-  }
+  worker = &(pcb->internal_conn[internalhdr->src_id - 8]);
 
 #if TCP_INPUT_DEBUG
 	LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_receive_data: packet is from id: %"U16_F"\n", worker->inid));
@@ -375,18 +352,24 @@ tcp_receive_data(struct tcp_pcb *pcb)
 //					__FILE__, __LINE__, internaltunl, worker->nxtwish);
 	
     /* find out if this packet has been received. */
-	hnode=NULL;
-	hnode = hmap_first_with_hash(&(pcb->packet_history), seqno);
-    if(hnode != NULL){
+	int hret = 0;
+
+	if (pcb->seq_history && rte_hash_lookup(pcb->seq_history, &seqno) >= 0) {
+		fprintf(stdout, "[%s][%d]: recv duplicate packet, seq %u\n",
+						__FILE__, __LINE__, seqno);
 		goto endreceive;
-	} else {
-	  struct kv_pair* tmppair = (struct kv_pair *)malloc(sizeof(struct kv_pair));
-	  if ( tmppair == NULL) {
-		LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_receive_data: out-of-memory\n"));
-		return;
-	  }
-	  tmppair->value=rte_rdtsc();
-	  hmap_insert(&(pcb->packet_history), (struct hmap_node *)tmppair, seqno); 
+	}
+	else {
+		if (pcb->seq_history) {
+			uint64_t recvtsc = rte_rdtsc();
+
+			hret = rte_hash_add_key_data(
+							pcb->seq_history, &seqno, (void*)(uintptr_t)recvtsc);
+			if (hret < 0) {
+				fprintf(stdout, "[%s][%d]: failed to insert seq %u to hashtable\n",
+								__FILE__, __LINE__, seqno);
+			}
+		}
 
       /* It means the first transmition, direct receive. */
 	  if (worker->nxtwish == internaltunl) { /* The received segment is in order. */
@@ -1250,6 +1233,7 @@ tcp_listen_input(struct tcp_pcb_listen *pcb)
 #if LWIP_NETML
 	if (is_bypass) {
 		npcb->is_bypass = is_bypass;
+		tcp_init_netml(npcb);
 	}
 #endif /* LWIP_NETML */
 

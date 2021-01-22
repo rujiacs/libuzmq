@@ -51,9 +51,9 @@ LWIP_MEMPOOL(TCP_PCB,        MEMP_NUM_TCP_PCB,         sizeof(struct tcp_pcb),  
 LWIP_MEMPOOL(TCP_PCB_LISTEN, MEMP_NUM_TCP_PCB_LISTEN,  sizeof(struct tcp_pcb_listen), "TCP_PCB_LISTEN")
 LWIP_MEMPOOL(TCP_SEG,        MEMP_NUM_TCP_SEG,         sizeof(struct tcp_seg),        "TCP_SEG")
 
-#if LWIP_NETML
-LWIP_MEMPOOL(TCP_INTERNAL_ID,MEMP_NUM_TCP_INTERNAL_ID, sizeof(struct tcp_internal_id),"TCP_INTERNAL_ID")
-#endif
+//#if LWIP_NETML
+//LWIP_MEMPOOL(TCP_INTERNAL_ID,MEMP_NUM_TCP_INTERNAL_ID, sizeof(struct tcp_internal_id),"TCP_INTERNAL_ID")
+//#endif
 #endif /* LWIP_TCP */
 
 #if LWIP_ALTCP && LWIP_TCP

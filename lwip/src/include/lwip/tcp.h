@@ -53,7 +53,6 @@
 
 #if LWIP_NETML
 #include "lwip/netml.h"
-#include "mlib/hmap.h"
 #endif
 
 #ifdef __cplusplus
@@ -338,9 +337,13 @@ struct tcp_pcb {
 #endif /* TCP_OVERSIZE */
 
 #if LWIP_NETML
-  struct hmap seq_tables;
-  struct hmap packet_history;
+
+#define NETML_MAX_NODE	128
+  struct tcp_internal_id internal_conn[NETML_MAX_NODE];
+#define NETML_MAX_SEQ_NUM	1000000
+  struct rte_hash *seq_history;
   u64_t last_tsc;
+  u8_t is_init_netml;
 #endif
 
   tcpwnd_size_t bytes_acked;

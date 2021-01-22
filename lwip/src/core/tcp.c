@@ -116,7 +116,8 @@
 #include <pthread.h>
 
 #if LWIP_NETML
-#include "mlib/hmap.h"
+#include <rte_hash.h>
+#include <rte_hash_crc.h>
 #endif
 
 #ifdef LWIP_HOOK_FILENAME
@@ -1871,6 +1872,44 @@ tcp_handle_closepend(void)
   }
 }
 
+int
+tcp_init_netml(struct tcp_pcb *pcb)
+{
+	if (pcb->is_init_netml && pcb->is_bypass)
+		return 0;
+	pcb->is_init_netml = 1;
+
+	// initialize internal connection list
+	uint16_t t = 0;
+	for (t = 0; t < NETML_MAX_NODE; t++) {
+		struct tcp_internal_id *ic = &(pcb->internal_conn[t]);
+
+		ic->nxtwish = 1;
+		ic->intseq = 1;
+		ic->inttunl = 1;
+		ic->intack = 1;
+		ic->inid = t + 8;
+#if TCP_QUEUE_OOSEQ
+		ic->ooseq = NULL;
+#endif
+	}
+
+	struct rte_hash_parameters params;
+
+	params.entries = NETML_MAX_SEQ_NUM;
+	params.name = "SEQ_HISTORY";
+	params.hash_func = rte_hash_crc;
+	params.key_len = sizeof(uint32_t);
+
+	pcb->seq_history = rte_hash_create(&params);
+	if (!pcb->seq_history) {
+		fprintf(stderr, "[%s][%d]: failed to create hash table for seq\n",
+						__FILE__, __LINE__);
+		return -1;
+	}
+	return 0;
+}
+
 /**
  * Allocate a new tcp_pcb structure.
  *
@@ -1954,9 +1993,8 @@ tcp_alloc(u8_t prio)
 #if LWIP_NETML
 	pcb->is_bypass = 0;
 	pcb->local_id = UINT16_MAX;
+	pcb->is_init_netml = 0;
 
-	hmap_init(&(pcb->seq_tables));
-	hmap_init(&(pcb->packet_history));
 #endif
 
     /* RFC 5681 recommends setting ssthresh abritrarily high and gives an example
@@ -2221,34 +2259,24 @@ tcp_pcb_purge(struct tcp_pcb *pcb)
 #endif /* TCP_OVERSIZE */
 
 #if LWIP_NETML
-	struct hmap_node *hnode, *tmphnode;
+	uint16_t t = 0;
 
-    if (hmap_count(&(pcb->packet_history)) != 0) {
-	  hnode = hmap_first(&(pcb->packet_history));
-	  tmphnode = NULL;
-	  while (hnode != NULL){
-	    tmphnode = hnode;
-	  	hnode = hmap_next(&(pcb->packet_history),hnode);
-		hmap_remove(&(pcb->packet_history), tmphnode);
-	  }
-    }
-	hmap_destroy(&(pcb->packet_history));
+	for (t = 0; t < NETML_MAX_NODE; t++) {
+		struct tcp_internal_id *ic = &(pcb->internal_conn[t]);
 
-    if (hmap_count(&(pcb->seq_tables)) != 0) {
-	  struct tcp_internal_id *tmpworker;
-	  hnode = hmap_first(&(pcb->seq_tables));
-	  tmphnode = NULL;
-	  while (hnode != NULL){
-	    tmpworker = (struct tcp_internal_id *)(((struct kv_pair *)hnode)->value);
-		tcp_segs_free(tmpworker->ooseq);
-        tmpworker->ooseq = NULL;
-		memp_free(MEMP_TCP_INTERNAL_ID, tmpworker);
-	    tmphnode = hnode;
-	  	hnode = hmap_next(&(pcb->seq_tables),hnode);
-		hmap_remove(&(pcb->seq_tables), tmphnode);
-	  }
-    }
-	hmap_destroy(&(pcb->seq_tables));
+#if TCP_QUEUE_OOSEQ
+		if (ic->ooseq) {
+			tcp_segs_free(ic->ooseq);
+			ic->ooseq = NULL;
+		}
+#endif
+	}
+
+	if (!pcb->is_bypass && pcb->seq_history) {
+		rte_hash_free(pcb->seq_history);
+		pcb->seq_history = NULL;
+	}
+
 #endif
   }
 }
