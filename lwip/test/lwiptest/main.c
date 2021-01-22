@@ -21,17 +21,17 @@
 
 #define IS_CLIENT 0
 
-#define SERVER_IP "192.168.56.21"
+#define SERVER_IP "192.168.57.21"
 #define SERVER_PORT 3170
 
 #define LOCAL_MASK "255.255.255.0"
 
 #if IS_CLIENT
-#define LOCAL_IP "192.168.56.22"
-#define LOCAL_GW "192.168.56.0"
+#define LOCAL_IP "192.168.57.22"
+#define LOCAL_GW "192.168.57.0"
 #else
 #define LOCAL_IP SERVER_IP
-#define LOCAL_GW "192.168.56.0"
+#define LOCAL_GW "192.168.57.0"
 #endif
 
 static struct netif netif;
@@ -87,7 +87,7 @@ static void client_thread(void *arg)
 }
 
 
-int main(int argc, char **argv)
+int main(void)
 {
 	sys_sem_t init_sem;
 	err_t err;
@@ -95,12 +95,7 @@ int main(int argc, char **argv)
 	is_err = 0;
 	sys_thread_t server, client;
 
-	ret = init_dpdk(argc, argv);
-	argc -= ret;
-	argv += ret;
-	if (ret < 0){
-		return 0;
-	}
+	ret = init_dpdk();
 
 	err = sys_sem_new(&init_sem, 0);
 	LWIP_ASSERT("failed to create init_sem", err == ERR_OK);

@@ -4,8 +4,8 @@ project(lwiptest C)
 
 set(LWIP_DIR         ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
-set(RTE_SDK ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dpdk-stable-17.11.10)
-set(RTE_TARGET x86_64-native-linuxapp-gcc)
+set(RTE_SDK $ENV{RTE_SDK})
+set(RTE_TARGET $ENV{RTE_TARGET})
 set(DPDK_INCLUDE_DIRS "${RTE_SDK}/${RTE_TARGET}/include")
 set(DPDK_LIB_DIRS "${RTE_SDK}/${RTE_TARGET}/lib")
 
