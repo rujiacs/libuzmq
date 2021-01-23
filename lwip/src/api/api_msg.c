@@ -1734,6 +1734,9 @@ lwip_netconn_do_writemore(struct netconn *conn  WRITE_DELAYED_PARAM)
       } else {
         write_more = 0;
       }
+#if LWIP_TCPIP_CORE_LOCKING
+	LWIP_ASSERT_CORE_LOCKED();
+#endif
 
 	  if (!conn->pcb.tcp->is_bypass && (apiflags & NETCONN_NETML_DATA)) {
 		err = tcp_write_netml(conn->pcb.tcp, dataptr, len,

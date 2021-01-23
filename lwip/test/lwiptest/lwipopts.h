@@ -450,7 +450,7 @@
 /**
  * SO_REUSE==1: Enable SO_REUSEADDR
  */
-#define SO_REUSE                        1
+#define SO_REUSE                        0
 
 /*
    ----------------------------------------

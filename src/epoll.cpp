@@ -67,13 +67,14 @@ zmq::epoll_t::~epoll_t ()
 {
     //  Wait till the worker thread exits.
     worker.stop ();
+//	lwip_worker.stop();
 
     close (epoll_fd);
-    for (retired_t::iterator it = retired.begin (); it != retired.end (); ++it) {
-        LIBZMQ_DELETE(*it);
-    }
+//    for (retired_t::iterator it = retired.begin (); it != retired.end (); ++it) {
+//        LIBZMQ_DELETE(*it);
+//    }
 
-    for (retired_t::iterator it = retired_lwip.begin (); it != retired_lwip.end (); ++it) {
+    for (retired_t::iterator it = retired.begin (); it != retired.end (); ++it) {
         LIBZMQ_DELETE(*it);
     }
 
@@ -183,9 +184,9 @@ void zmq::epoll_t::rm_fd_lwip (handle_t handle_)
 
 	fds_sync.unlock();
 
-    retired_lwip_sync.lock ();
-    retired_lwip.push_back (pe);
-    retired_lwip_sync.unlock ();
+    retired_sync.lock ();
+    retired.push_back (pe);
+    retired_sync.unlock ();
 
     //  Decrease the load metric of the thread.
     adjust_load (-1);
@@ -262,8 +263,8 @@ void zmq::epoll_t::start ()
 {
     ctx.start_thread (worker, worker_routine, this);
 
-	if (is_lwip)
-		ctx.start_thread(lwip_worker, lwip_routine, this);
+//	if (is_lwip)
+//		ctx.start_thread(lwip_worker, lwip_routine, this);
 }
 
 void zmq::epoll_t::stop ()
@@ -281,7 +282,7 @@ void zmq::epoll_t::handle_epoll()
 	int n = 0;
 	epoll_event ev_buf[max_io_events];
 
-	n = epoll_wait(epoll_fd, ev_buf, max_io_events, -1);
+	n = epoll_wait(epoll_fd, ev_buf, max_io_events, 0);
 	if (n == -1) {
 		errno_assert(errno == EINTR);
 		return;
@@ -410,6 +411,9 @@ void zmq::epoll_t::loop_epoll ()
 
 		handle_epoll();
 
+		if (is_lwip)
+			handle_lwip();
+
         //  Destroy retired event sources.
         retired_sync.lock ();
         for (retired_t::iterator it = retired.begin (); it != retired.end (); ++it) {
@@ -426,12 +430,12 @@ void zmq::epoll_t::loop_lwip()
 		handle_lwip();
 
         //  Destroy retired event sources.
-        retired_lwip_sync.lock ();
-        for (retired_t::iterator it = retired_lwip.begin (); it != retired_lwip.end (); ++it) {
+        retired_sync.lock ();
+        for (retired_t::iterator it = retired.begin (); it != retired.end (); ++it) {
             LIBZMQ_DELETE(*it);
         }
-        retired_lwip.clear ();
-        retired_lwip_sync.unlock ();
+        retired.clear ();
+        retired_sync.unlock ();
 	}
 }
 

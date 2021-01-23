@@ -1003,8 +1003,8 @@ tcp_recved(struct tcp_pcb *pcb, u16_t len)
   if (!pcb->is_bypass)
 	return;
 
-  fprintf(stdout, "[%s][%d][%lu]: app recv %u-byte data\n",
-				  __FILE__, __LINE__, pthread_self(), len);
+//  fprintf(stdout, "[%s][%d][%lu]: app recv %u-byte data\n",
+//				  __FILE__, __LINE__, pthread_self(), len);
 
   LWIP_ASSERT_CORE_LOCKED();
 

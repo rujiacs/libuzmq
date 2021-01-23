@@ -12,7 +12,7 @@
 #if LWIP_SOCKET && LWIP_IPV4 /* this uses IPv4 loopback sockets, currently */
 
 #define TEST_TIME_SECONDS	10
-#define TEST_TXRX_BUFSIZE	1000
+#define TEST_TXRX_BUFSIZE	100
 #define TEST_LOOP			100  
 
 
@@ -51,7 +51,7 @@ __sockets_server_inline(int sock, struct lwip_sockaddr_in *caddr)
 		int ret_len = TEST_TXRX_BUFSIZE;
 		int read_len = 0;
 
-		while (read_len >= ret_len) {
+		while (read_len < ret_len) {
 			ret = lwip_recv(sock, txbuf, TEST_TXRX_BUFSIZE, 0);
 			if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
 				continue;
@@ -60,7 +60,10 @@ __sockets_server_inline(int sock, struct lwip_sockaddr_in *caddr)
 								__FILE__, __LINE__, errno);
 				goto close_server;
 			}
-			read_len += ret;
+			if (ret > 0) {
+				fprintf(stdout, "[%s][%d]: recv %d bytes\n", __FILE__, __LINE__, ret);
+				read_len += ret;
+			}
 		}
 
 		while (ret_len > 0) {
@@ -73,7 +76,6 @@ __sockets_server_inline(int sock, struct lwip_sockaddr_in *caddr)
 				ret_len -= ret;
 			}
 		}
-		usleep(50000);
 	}
 
 close_server:
@@ -114,6 +116,7 @@ sockets_server(const char *server_ip, u16_t port)
 	csock = lwip_accept(sock, (struct lwip_sockaddr *)&caddr, &caddr_len);
 
 	__sockets_server_inline(csock, &caddr);
+	lwip_close(sock);
 }
 
 void

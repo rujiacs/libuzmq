@@ -29,6 +29,7 @@
 #include "netif/etharp.h"
 #include "lwip/ethip6.h"
 #include "netif/dpdkif.h"
+#include "lwip/priv/tcp_priv.h"
 
 #include <rte_common.h>
 #include <rte_log.h>
@@ -72,7 +73,6 @@ struct arg_pass {
 static uint16_t nb_rxd = RTE_TEST_RX_DESC_DEFAULT;
 static uint16_t nb_txd = RTE_TEST_TX_DESC_DEFAULT;
 
-static struct rte_eth_dev_tx_buffer *l2fwd_tx_buffer;
 
 /* ethernet addresses of ports */
 static struct ether_addr l2fwd_port_eth_addr;
@@ -110,8 +110,8 @@ static void dpdk_input(struct rte_mbuf* m, struct netif* netif) {
 	len = rte_pktmbuf_pkt_len(m);
 	p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
 
-//	fprintf(stdout, "[%lu][%s][%d]: dpdk recv %u-byte packet\n",
-//					pthread_self(), __FILE__, __LINE__, len);
+//	fprintf(stdout, "[%s][%d][%lu]: dpdk recv %u-byte packet\n",
+//					__FILE__, __LINE__, pthread_self(), len);
 	if (p != NULL) {
 		/*assuming 2048 bytes is enough for independent data packets*/
 		//p->payload = rte_pktmbuf_mtod(m, void *);	
@@ -144,6 +144,8 @@ static err_t dpdk_output(struct netif *netif, struct pbuf *p) {
        perror("tapif: packet too large");
        return ERR_IF;
   	}
+//	fprintf(stdout, "[%s][%d]: %u bytes to send\n",
+//					__FILE__, __LINE__, p->tot_len);
 
 	u64_t offset=0;
 	  //assuming only one packet in pbuf *p, if there is something wrong, change here.
@@ -159,7 +161,7 @@ static err_t dpdk_output(struct netif *netif, struct pbuf *p) {
 //					pthread_self(), __FILE__, __LINE__, m->pkt_len);
       
 	/* signal that packet should be sent(); */
-	sent = rte_eth_tx_buffer(0, 0, l2fwd_tx_buffer, m);
+	sent = rte_eth_tx_burst(0, 0, &m, 1);
     if (sent)
 		port_statistics.tx += sent;
 
@@ -172,9 +174,9 @@ static int dpdk_thread(void *arg) {
 	unsigned i, nb_rx, sent;
 	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
 	struct netif* netif = (struct netif *) arg;
+	uint64_t interval = rte_get_timer_hz() / 4, last_ts = 0, ts = 0;
 
 	while (1) {
-		sent = rte_eth_tx_buffer_flush(0, 0, l2fwd_tx_buffer);
 		port_statistics.tx += sent;
 		nb_rx = rte_eth_rx_burst(0, 0,
 					pkts_burst, MAX_PKT_BURST);
@@ -183,6 +185,14 @@ static int dpdk_thread(void *arg) {
 		for (i = 0; i < nb_rx; i++) {
 			dpdk_input(pkts_burst[i], netif); 
 		}
+
+		ts = rte_rdtsc();
+		if (ts - last_ts >= interval) {
+			LOCK_TCPIP_CORE();
+			tcp_tmr();
+			UNLOCK_TCPIP_CORE();
+		}
+		last_ts = ts;
 	}
 	return 0;
 }
@@ -348,22 +358,9 @@ init_dpdk(void)
 	fflush(stdout);
 	ret = rte_eth_tx_queue_setup(0, 0, nb_txd, rte_eth_dev_socket_id(0), NULL);
 	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup:err=%d, port=0\n", ret);
+		rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup:err=%d, 0-0\n", ret);
 
 		/* Initialize TX buffers */
-
-	l2fwd_tx_buffer = (struct rte_eth_dev_tx_buffer *)rte_zmalloc_socket("tx_buffer", RTE_ETH_TX_BUFFER_SIZE(MAX_PKT_BURST), 0, rte_eth_dev_socket_id(0));
-		
-	if (l2fwd_tx_buffer == NULL)
-		rte_exit(EXIT_FAILURE, "Cannot allocate buffer for tx on port 0\n");
-
-	rte_eth_tx_buffer_init(l2fwd_tx_buffer, MAX_PKT_BURST);
-
-	ret = rte_eth_tx_buffer_set_err_callback(l2fwd_tx_buffer,
-			rte_eth_tx_buffer_count_callback,
-			&port_statistics.dropped);
-	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "Cannot set error callback for tx buffer on port 0\n");
 
 	/* Start device */
 	ret = rte_eth_dev_start(0);

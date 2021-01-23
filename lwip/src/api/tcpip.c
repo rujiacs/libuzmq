@@ -715,14 +715,14 @@ tcpip_init(tcpip_init_done_fn initfunc, void *arg)
   }
 #endif /* LWIP_TCPIP_CORE_LOCKING */
 
-//  if (tcpip_init_done != NULL) {
-//  	tcpip_init_done(tcpip_init_done_arg);
-//  }
-//
-//  __init_arp_entries();
+  if (tcpip_init_done != NULL) {
+  	tcpip_init_done(tcpip_init_done_arg);
+  }
+
+  __init_arp_entries();
 
 //  LOCK_TCPIP_CORE();
-  sys_thread_new(TCPIP_THREAD_NAME, tcpip_thread, NULL, TCPIP_THREAD_STACKSIZE, TCPIP_THREAD_PRIO);
+//  sys_thread_new(TCPIP_THREAD_NAME, tcpip_thread, NULL, TCPIP_THREAD_STACKSIZE, TCPIP_THREAD_PRIO);
 }
 
 /**
