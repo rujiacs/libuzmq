@@ -33,6 +33,7 @@
 
 #include <sys/epoll.h>
 #include <sys/syscall.h>
+#include <sys/prctl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -436,11 +437,13 @@ void zmq::epoll_t::loop_lwip()
 
 void zmq::epoll_t::worker_routine (void *arg_)
 {
+	prctl(PR_SET_NAME, "iothread_epoll");
     ((epoll_t*) arg_)->loop_epoll ();
 }
 
 void zmq::epoll_t::lwip_routine (void *arg_)
 {
+	prctl(PR_SET_NAME, "iothread_lwip");
 	((epoll_t *)arg_)->loop_lwip();
 }
 

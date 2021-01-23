@@ -1862,6 +1862,7 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb, struct netif *netif
 #endif
   LWIP_ASSERT("options not filled", (u8_t *)opts == ((u8_t *)(seg->tcphdr + 1)) + LWIP_TCP_OPT_LENGTH_SEGMENT(seg->flags, pcb));
 
+#if 0  
 #if CHECKSUM_GEN_TCP
   IF__NETIF_CHECKSUM_ENABLED(netif, NETIF_CHECKSUM_GEN_TCP) {
 #if TCP_CHECKSUM_ON_COPY
@@ -1900,6 +1901,7 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb, struct netif *netif
 #endif /* TCP_CHECKSUM_ON_COPY */
   }
 #endif /* CHECKSUM_GEN_TCP */
+#endif
   TCP_STATS_INC(tcp.xmit);
 
   NETIF_SET_HINTS(netif, &(pcb->netif_hints));
