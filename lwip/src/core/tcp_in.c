@@ -207,14 +207,14 @@ tcp_receive_data(struct tcp_pcb *pcb)
   u8_t init_flags = TCPH_OFFSET_FLAGS(tcphdr);
 
   if (!pcb->is_init_netml) {
-  	fprintf(stdout, "[%s][%d]: init seq_history\n", __FILE__, __LINE__);
+//  	fprintf(stdout, "[%s][%d]: init seq_history\n", __FILE__, __LINE__);
 	if (next_seq_tbl >= NETML_MAX_SEQ_TBLS) {
 		fprintf(stdout, "[%s][%d]: doesn't have enough seq tables\n",
 						__FILE__, __LINE__);
 	}
 	else {
-		fprintf(stdout, "[%s][%d]: pcb %p use %u-th tbl\n",
-						__FILE__, __LINE__, (void*)pcb, next_seq_tbl);
+//		fprintf(stdout, "[%s][%d]: pcb %p use %u-th tbl\n",
+//						__FILE__, __LINE__, (void*)pcb, next_seq_tbl);
 
 		if (seq_tbls[next_seq_tbl] == NULL) {
 			struct rte_hash_parameters params;
@@ -259,8 +259,8 @@ tcp_receive_data(struct tcp_pcb *pcb)
 			}
 		}
 
-		fprintf(stdout, "[%s][%d]: clean %u seqno in seq_history\n",
-						__FILE__, __LINE__, nb_clean);
+//		fprintf(stdout, "[%s][%d]: clean %u seqno in seq_history\n",
+//						__FILE__, __LINE__, nb_clean);
 
 		pcb->last_tsc = cur_tsc;
   	}
