@@ -2336,8 +2336,8 @@ tcp_output_control_segment(const struct tcp_pcb *pcb, struct pbuf *p,
       tos = pcb->tos;
 
 #if LWIP_NETML
-	  fprintf(stdout, "[%s][%d]: send ctl packet (%u), ", __FILE__, __LINE__, p->tot_len);
-	  tcp_debug_print_netml((struct tcp_hdr *)p->payload);
+//	  fprintf(stdout, "[%s][%d]: send ctl packet (%u), ", __FILE__, __LINE__, p->tot_len);
+//	  tcp_debug_print_netml((struct tcp_hdr *)p->payload);
 #endif
 	} else {
       /* Send output with hardcoded TTL/HL since we have no access to the pcb */

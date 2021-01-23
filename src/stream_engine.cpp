@@ -458,11 +458,11 @@ void zmq::stream_engine_t::ctl_out_event()
 			output->outsize += n;
 		}
 
-		if (!output->outsize) {
-			output_stopped = true;
-			reset_pollout_lwip(handle);
-			return;
-		}
+//		if (!output->outsize) {
+//			output_stopped = true;
+//			reset_pollout_lwip(handle);
+//			return;
+//		}
 	}
 
 	if (output->outsize) {
@@ -580,11 +580,11 @@ void zmq::stream_engine_t::data_out_event()
 			}
 		}
 
-		if (!has_data()) {
-			output_stopped = true;
-			reset_pollout_lwip(handle);
-			return;
-		}
+//		if (!has_data()) {
+//			output_stopped = true;
+//			reset_pollout_lwip(handle);
+//			return;
+//		}
 	}
 
 	for (unsigned i = 0; i < num_target; i++) {

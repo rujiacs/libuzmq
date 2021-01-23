@@ -45,7 +45,7 @@
 #include "config.hpp"
 #include "i_poll_events.hpp"
 
-zmq::epoll_t::epoll_t (const zmq::ctx_t &ctx_) :
+zmq::epoll_t::epoll_t (const zmq::ctx_t &ctx_, bool lwip) :
     ctx(ctx_),
     stopping (false),
 	maxfd (0)
@@ -59,6 +59,7 @@ zmq::epoll_t::epoll_t (const zmq::ctx_t &ctx_) :
     epoll_fd = epoll_create (1);
 #endif
     errno_assert (epoll_fd != -1);
+	is_lwip = lwip;
 }
 
 zmq::epoll_t::~epoll_t ()
@@ -68,6 +69,10 @@ zmq::epoll_t::~epoll_t ()
 
     close (epoll_fd);
     for (retired_t::iterator it = retired.begin (); it != retired.end (); ++it) {
+        LIBZMQ_DELETE(*it);
+    }
+
+    for (retired_t::iterator it = retired_lwip.begin (); it != retired_lwip.end (); ++it) {
         LIBZMQ_DELETE(*it);
     }
 
@@ -177,9 +182,9 @@ void zmq::epoll_t::rm_fd_lwip (handle_t handle_)
 
 	fds_sync.unlock();
 
-    retired_sync.lock ();
-    retired.push_back (pe);
-    retired_sync.unlock ();
+    retired_lwip_sync.lock ();
+    retired_lwip.push_back (pe);
+    retired_lwip_sync.unlock ();
 
     //  Decrease the load metric of the thread.
     adjust_load (-1);
@@ -213,7 +218,6 @@ void zmq::epoll_t::reset_pollin (handle_t handle_)
 void zmq::epoll_t::reset_pollin_lwip (handle_t handle_)
 {
     poll_entry_t *pe = (poll_entry_t*) handle_;
-
 	fds_sync.lock();
 	FD_CLR(pe->fd, &fds_set.read);
 	fds_sync.unlock();
@@ -256,6 +260,9 @@ void zmq::epoll_t::reset_pollout_lwip (handle_t handle_)
 void zmq::epoll_t::start ()
 {
     ctx.start_thread (worker, worker_routine, this);
+
+	if (is_lwip)
+		ctx.start_thread(lwip_worker, lwip_routine, this);
 }
 
 void zmq::epoll_t::stop ()
@@ -273,7 +280,7 @@ void zmq::epoll_t::handle_epoll()
 	int n = 0;
 	epoll_event ev_buf[max_io_events];
 
-	n = epoll_wait(epoll_fd, ev_buf, max_io_events, 0);
+	n = epoll_wait(epoll_fd, ev_buf, max_io_events, -1);
 	if (n == -1) {
 		errno_assert(errno == EINTR);
 		return;
@@ -284,16 +291,19 @@ void zmq::epoll_t::handle_epoll()
 
         if (pe->fd == retired_fd)
   			continue;
-        if (ev_buf [i].events & (EPOLLERR | EPOLLHUP))
+        if (ev_buf [i].events & (EPOLLERR | EPOLLHUP)) {
             pe->events->in_event ();
+		}
         if (pe->fd == retired_fd)
            continue;
-        if (ev_buf [i].events & EPOLLOUT)
+        if (ev_buf [i].events & EPOLLOUT) {
             pe->events->out_event ();
+		}
         if (pe->fd == retired_fd)
             continue;
-        if (ev_buf [i].events & EPOLLIN)
+        if (ev_buf [i].events & EPOLLIN) {
             pe->events->in_event ();
+		}
     }
 }
 
@@ -390,7 +400,7 @@ void zmq::epoll_t::handle_lwip()
 	}
 }
 
-void zmq::epoll_t::loop ()
+void zmq::epoll_t::loop_epoll ()
 {
     while (!stopping) {
 
@@ -398,8 +408,6 @@ void zmq::epoll_t::loop ()
 //        int timeout = (int) execute_timers ();
 
 		handle_epoll();
-
-		handle_lwip();
 
         //  Destroy retired event sources.
         retired_sync.lock ();
@@ -411,9 +419,29 @@ void zmq::epoll_t::loop ()
     }
 }
 
+void zmq::epoll_t::loop_lwip()
+{
+	while (!stopping) {
+		handle_lwip();
+
+        //  Destroy retired event sources.
+        retired_lwip_sync.lock ();
+        for (retired_t::iterator it = retired_lwip.begin (); it != retired_lwip.end (); ++it) {
+            LIBZMQ_DELETE(*it);
+        }
+        retired_lwip.clear ();
+        retired_lwip_sync.unlock ();
+	}
+}
+
 void zmq::epoll_t::worker_routine (void *arg_)
 {
-    ((epoll_t*) arg_)->loop ();
+    ((epoll_t*) arg_)->loop_epoll ();
+}
+
+void zmq::epoll_t::lwip_routine (void *arg_)
+{
+	((epoll_t *)arg_)->loop_lwip();
 }
 
 zmq::epoll_t::fds_set_t::fds_set_t ()

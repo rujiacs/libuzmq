@@ -57,7 +57,7 @@ namespace zmq
 
         typedef void* handle_t;
 
-        epoll_t (const ctx_t &ctx_);
+        epoll_t (const ctx_t &ctx_, bool lwip = false);
         ~epoll_t ();
 
         //  "poller" concept.
@@ -84,8 +84,11 @@ namespace zmq
         //  Main worker thread routine.
         static void worker_routine (void *arg_);
 
+		static void lwip_routine (void *arg_);
+
         //  Main event loop.
-        void loop ();
+        void loop_epoll ();
+        void loop_lwip ();
 
         // Reference to ZMQ context.
         const ctx_t &ctx;
@@ -103,19 +106,24 @@ namespace zmq
         //  List of retired event sources.
         typedef std::vector <poll_entry_t*> retired_t;
         retired_t retired;
+		retired_t retired_lwip;
 
         //  If true, thread is in the process of shutting down.
         bool stopping;
 
         //  Handle of the physical thread doing the I/O work.
         thread_t worker;
+		thread_t lwip_worker;
 
         //  Synchronisation of retired event sources
         mutex_t retired_sync;
+		mutex_t retired_lwip_sync;
 
 
 		/*  lwip thread */
 		fd_t maxfd;
+
+		bool is_lwip;
 
     	//  Internal state.
     	struct fds_set_t

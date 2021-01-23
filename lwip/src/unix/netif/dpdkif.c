@@ -110,8 +110,8 @@ static void dpdk_input(struct rte_mbuf* m, struct netif* netif) {
 	len = rte_pktmbuf_pkt_len(m);
 	p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
 
-	fprintf(stdout, "[%lu][%s][%d]: dpdk recv %u-byte packet\n",
-					pthread_self(), __FILE__, __LINE__, len);
+//	fprintf(stdout, "[%lu][%s][%d]: dpdk recv %u-byte packet\n",
+//					pthread_self(), __FILE__, __LINE__, len);
 	if (p != NULL) {
 		/*assuming 2048 bytes is enough for independent data packets*/
 		//p->payload = rte_pktmbuf_mtod(m, void *);	
@@ -119,6 +119,8 @@ static void dpdk_input(struct rte_mbuf* m, struct netif* netif) {
 		if(netif->input(p, netif) != ERR_OK) {
 			LWIP_DEBUGF(NETIF_DEBUG, ("dpdk_input: input error\n"));
 			pbuf_free(p);
+			fprintf(stdout, "[%s][%d]: failed to handle input packet, len %u\n",
+							__FILE__, __LINE__, len);
 		}
 	    rte_pktmbuf_free(m);
 	}
@@ -153,8 +155,8 @@ static err_t dpdk_output(struct netif *netif, struct pbuf *p) {
       	offset+=q->len;
     }
 
-	fprintf(stdout, "[%lu][%s][%d]: dpdk send %u-byte packet\n",
-					pthread_self(), __FILE__, __LINE__, m->pkt_len);
+//	fprintf(stdout, "[%lu][%s][%d]: dpdk send %u-byte packet\n",
+//					pthread_self(), __FILE__, __LINE__, m->pkt_len);
       
 	/* signal that packet should be sent(); */
 	sent = rte_eth_tx_buffer(0, 0, l2fwd_tx_buffer, m);
