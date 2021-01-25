@@ -384,8 +384,8 @@ tcp_receive_data(struct tcp_pcb *pcb)
       pcb->rttest = 0;
     }
   } else {
-//	fprintf(stdout, "[%s][%d]process data %u, wish %u\n",
-//					__FILE__, __LINE__, internaltunl, worker->nxtwish);
+	fprintf(stdout, "[%s][%d]process data %u, wish %u\n",
+					__FILE__, __LINE__, internaltunl, worker->nxtwish);
 	
     /* find out if this packet has been received. */
 #if 0
