@@ -119,8 +119,8 @@
 #include <rte_hash.h>
 #include <rte_hash_crc.h>
 
-void *seq_tbls[NETML_MAX_SEQ_TBLS] = {NULL};
-u8_t next_seq_tbl = 0;
+//void *seq_tbls[NETML_MAX_SEQ_TBLS] = {NULL};
+//u8_t next_seq_tbl = 0;
 #endif
 
 #ifdef LWIP_HOOK_FILENAME

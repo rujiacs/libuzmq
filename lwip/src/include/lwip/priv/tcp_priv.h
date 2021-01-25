@@ -85,8 +85,8 @@ err_t			 tcp_send_empty_ack_netml (struct tcp_pcb *pcb,
 void			 tcp_rexmit_data (struct tcp_pcb *pcb, struct tcp_seg *seg);
 
 #define NETML_MAX_SEQ_TBLS	5
-extern void *seq_tbls[NETML_MAX_SEQ_TBLS];
-extern u8_t next_seq_tbl;
+//extern void *seq_tbls[NETML_MAX_SEQ_TBLS];
+//extern u8_t next_seq_tbl;
 #endif
 /* Only used by IP to pass a TCP segment to TCP: */
 void             tcp_input   (struct pbuf *p, struct netif *inp);

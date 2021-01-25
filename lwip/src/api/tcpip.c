@@ -71,8 +71,8 @@ static void tcpip_thread_handle_msg(struct tcpip_msg *msg);
 
 #if LWIP_NETML
 #include "lwip/priv/tcp_priv.h"
-#include <rte_hash.h>
-#include <rte_hash_crc.h>
+//#include <rte_hash.h>
+//#include <rte_hash_crc.h>
 #endif
 
 #if !LWIP_TIMERS
@@ -214,7 +214,7 @@ tcpip_thread(void *arg)
   if (tcpip_init_done != NULL) {
     tcpip_init_done(tcpip_init_done_arg);
   }
-
+#if 0
   struct rte_hash_parameters params;
   struct rte_hash *tbl = NULL;
 
@@ -231,7 +231,7 @@ tcpip_thread(void *arg)
   else {
   	seq_tbls[0] = tbl;
   }
-
+#endif
   __init_arp_entries();
 
   while (1) {                          /* MAIN Loop */

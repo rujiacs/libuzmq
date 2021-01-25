@@ -20,6 +20,7 @@
 #include "lwip/debug.h"
 #include "lwip/def.h"
 #include "lwip/ip.h"
+#include "lwip/tcp.h"
 #include "lwip/mem.h"
 #include "lwip/stats.h"
 #include "lwip/snmp.h"
@@ -297,6 +298,9 @@ init_dpdk(void)
 	int ret;
 	uint16_t nb_ports;
 	//unsigned rx_lcore_id;
+
+	fprintf(stdout, "[%s][%d]: tcp_pcb %lu, tcp_internal_id %lu\n",
+					__FILE__, __LINE__, sizeof(struct tcp_pcb), sizeof(struct tcp_internal_id));
 
 	/* init EAL */
 	int val = 3;

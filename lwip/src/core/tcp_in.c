@@ -206,6 +206,7 @@ tcp_receive_data(struct tcp_pcb *pcb)
   struct hmap_node *hnode, *tmphnode;
   u8_t init_flags = TCPH_OFFSET_FLAGS(tcphdr);
 
+#if 0
   if (!pcb->is_init_netml) {
 //  	fprintf(stdout, "[%s][%d]: init seq_history\n", __FILE__, __LINE__);
 	if (next_seq_tbl >= NETML_MAX_SEQ_TBLS) {
@@ -265,7 +266,7 @@ tcp_receive_data(struct tcp_pcb *pcb)
 		pcb->last_tsc = cur_tsc;
   	}
   }
-
+#endif
   /* find out the corresponding worker. */
   worker = &(pcb->internal_conn[internalhdr->src_id - 8]);
 
@@ -387,6 +388,7 @@ tcp_receive_data(struct tcp_pcb *pcb)
 //					__FILE__, __LINE__, internaltunl, worker->nxtwish);
 	
     /* find out if this packet has been received. */
+#if 0
 	int hret = 0;
 
 	if (pcb->seq_history && rte_hash_lookup(pcb->seq_history, &seqno) >= 0) {
@@ -405,7 +407,8 @@ tcp_receive_data(struct tcp_pcb *pcb)
 								__FILE__, __LINE__, seqno);
 			}
 		}
-
+#endif
+	{
       /* It means the first transmition, direct receive. */
 	  if (worker->nxtwish == internaltunl) { /* The received segment is in order. */
         if (worker->ooseq == NULL){   /* There is nothing in ooseq, directly receive. */
