@@ -923,6 +923,7 @@ ip4_output_if_opt_src(struct pbuf *p, const ip4_addr_t *src, const ip4_addr_t *d
     chk_sum += PP_NTOHS(tos | (iphdr->_v_hl << 8));
 #endif /* CHECKSUM_GEN_IP_INLINE */
     IPH_LEN_SET(iphdr, lwip_htons(p->tot_len));
+	fprintf(stdout, "[%s][%d]: iphdr->len = %u\n", __FILE__, __LINE__, p->tot_len);
 #if CHECKSUM_GEN_IP_INLINE
     chk_sum += iphdr->_len;
 #endif /* CHECKSUM_GEN_IP_INLINE */

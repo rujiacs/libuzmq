@@ -453,7 +453,7 @@ tcp_write_netml(struct tcp_pcb *pcb, const void *arg, u16_t len,
     }
     /* reference the non-volatile payload data */
 	((struct pbuf_rom *)p2)->payload = (const u8_t *)arg + pos;
-
+#if 0
 	/* allocate a pbuf for internal headers */
 	struct pbuf *p1 = NULL;
 	if ((p1 = pbuf_alloc(PBUF_TRANSPORT, sizeof(struct internal_hdr), PBUF_RAM)) == NULL) {
@@ -462,9 +462,10 @@ tcp_write_netml(struct tcp_pcb *pcb, const void *arg, u16_t len,
         goto memerr;
 	}
 	pbuf_cat(p1 /* internal header */, p2 /* data */);
+#endif
 
     /* Second, allocate a pbuf for the headers. */
-    if ((p = pbuf_alloc(PBUF_TRANSPORT, optlen, PBUF_RAM)) == NULL) {
+    if ((p = pbuf_alloc(PBUF_TRANSPORT, optlen + sizeof(struct internal_hdr), PBUF_RAM)) == NULL) {
       /* If allocation fails, we have to deallocate the data pbuf as
        * well. */
 		pbuf_free(p2);
@@ -472,7 +473,7 @@ tcp_write_netml(struct tcp_pcb *pcb, const void *arg, u16_t len,
         goto memerr;
     }
     /* Concatenate the headers and data pbufs together. */
-    pbuf_cat(p/*header*/, p1/* internal_hdr + data*/);
+    pbuf_cat(p/*header + internal_hdr */, p2/* data */);
 
     queuelen += pbuf_clen(p);
 
@@ -490,7 +491,7 @@ tcp_write_netml(struct tcp_pcb *pcb, const void *arg, u16_t len,
       goto memerr;
     }
 
-	seg->inthdr = (struct internal_hdr*)p1->payload;
+	seg->inthdr = p->payload + TCP_HLEN + optlen;
 	seg->inthdr->dst_id = lwip_htons(remote_id);
 	seg->inthdr->src_id = lwip_htons(pcb->local_id);
 	seg->inthdr->int_seqno = lwip_htonl(tmpworker->intseq);
@@ -503,14 +504,14 @@ tcp_write_netml(struct tcp_pcb *pcb, const void *arg, u16_t len,
 		TCPH_OFFSET_SETBIT(seg->tcphdr, NETML_COLD);
 	}
 
-//	fprintf(stdout, "[%s][%d]: send %u(%u)->%u(%u), seq %u, "
-//					"intseq %u, inttunl %u, len %u, ",
-//					__FILE__, __LINE__,
-//					lwip_ntohs(seg->tcphdr->src), pcb->local_id,
-//					lwip_ntohs(seg->tcphdr->dest), remote_id,
-//					lwip_ntohl(seg->tcphdr->seqno),
-//					tmpworker->intseq,
-//					tmpworker->inttunl, seglen);
+	fprintf(stdout, "[%s][%d]: send %u(%u)->%u(%u), seq %u, "
+					"intseq %u, inttunl %u, data len %u, seg->len %u, ",
+					__FILE__, __LINE__,
+					lwip_ntohs(seg->tcphdr->src), pcb->local_id,
+					lwip_ntohs(seg->tcphdr->dest), remote_id,
+					lwip_ntohl(seg->tcphdr->seqno),
+					tmpworker->intseq,
+					tmpworker->inttunl, seglen, seg->len);
 
 	if (!is_hot)
   		tmpworker->inttunl += seglen;
