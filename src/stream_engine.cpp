@@ -356,8 +356,6 @@ void zmq::stream_engine_t::data_out_event()
 {
 	bool is_clear = false;
 
-	fprintf(stdout, "[%s][%d]: enter out_event\n", __FILE__, __LINE__);
-
 	while (!is_clear) {
 		outpos = NULL;
 		outsize = encoder->encode(&outpos, 0);
