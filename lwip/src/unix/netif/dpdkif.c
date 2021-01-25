@@ -111,8 +111,8 @@ static void dpdk_input(struct rte_mbuf* m, struct netif* netif) {
 	len = rte_pktmbuf_pkt_len(m);
 	p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
 
-//	fprintf(stdout, "[%s][%d][%lu]: dpdk recv %u-byte packet\n",
-//					__FILE__, __LINE__, pthread_self(), len);
+//	fprintf(stdout, "[%s][%d][%lu]: dpdk recv %u-byte packet, pbuf %p\n",
+//					__FILE__, __LINE__, pthread_self(), len, (void*)p);
 	if (p != NULL) {
 		/*assuming 2048 bytes is enough for independent data packets*/
 		//p->payload = rte_pktmbuf_mtod(m, void *);	
@@ -126,8 +126,9 @@ static void dpdk_input(struct rte_mbuf* m, struct netif* netif) {
 	    rte_pktmbuf_free(m);
 	}
 	else {
+		fprintf(stdout, "[%s][%d]: failed to alloc pbuf for new packet\n",
+						__FILE__, __LINE__);
 		rte_pktmbuf_free(m); 
-		LWIP_DEBUGF(NETIF_DEBUG, ("dpdk_input: packet drop, pbuf allocation failed.\n")); 
 	}
 
 }
@@ -298,9 +299,6 @@ init_dpdk(void)
 	int ret;
 	uint16_t nb_ports;
 	//unsigned rx_lcore_id;
-
-	fprintf(stdout, "[%s][%d]: tcp_pcb %lu, tcp_internal_id %lu\n",
-					__FILE__, __LINE__, sizeof(struct tcp_pcb), sizeof(struct tcp_internal_id));
 
 	/* init EAL */
 	int val = 3;

@@ -130,7 +130,7 @@
  * MEM_SIZE: the size of the heap memory. If the application will send
  * a lot of data that needs to be copied, this should be set high.
  */
-#define MEM_SIZE                        409600
+#define MEM_SIZE                        40960000
 
 /*
    ------------------------------------------------
@@ -142,7 +142,7 @@
  * If the application sends a lot of data out of ROM (or other static memory),
  * this should be set high.
  */
-#define MEMP_NUM_PBUF                   1600
+#define MEMP_NUM_PBUF                   16000
 
 /**
  * MEMP_NUM_RAW_PCB: Number of raw connection PCBs
@@ -224,7 +224,7 @@
 /**
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
-#define PBUF_POOL_SIZE                  16
+#define PBUF_POOL_SIZE                  16000
 
 /*
    ---------------------------------

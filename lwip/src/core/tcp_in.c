@@ -384,8 +384,8 @@ tcp_receive_data(struct tcp_pcb *pcb)
       pcb->rttest = 0;
     }
   } else {
-	fprintf(stdout, "[%s][%d]process data %u, wish %u\n",
-					__FILE__, __LINE__, internaltunl, worker->nxtwish);
+//	fprintf(stdout, "[%s][%d][%lu]: process data %u, wish %u\n",
+//					__FILE__, __LINE__, pthread_self(), internaltunl, worker->nxtwish);
 	
     /* find out if this packet has been received. */
 #if 0
@@ -576,6 +576,8 @@ void tcp_netml_input(struct pbuf *p)
       LWIP_ASSERT("pcb->refused_data == NULL", pcb->refused_data == NULL);
 	  LWIP_DEBUGF(TCP_INPUT_DEBUG, ("recv %u data\n", recv_data->tot_len));
       TCP_EVENT_RECV(pcb, recv_data, ERR_OK, err);
+	  if (err != ERR_OK)
+			fprintf(stdout, "[%s][%d]: app cannot recv data\n", __FILE__, __LINE__);
       if (err == ERR_ABRT) {
          goto netmlaborted;
       }
@@ -584,6 +586,7 @@ void tcp_netml_input(struct pbuf *p)
       if (err != ERR_OK) {
          pcb->refused_data = recv_data;
          LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_netml_data: keep incoming packet, because pcb is \"full\"\n"));
+         fprintf(stdout, "tcp_netml_data: keep incoming packet, because pcb is \"full\"\n");
       }
 	}
 

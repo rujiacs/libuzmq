@@ -1712,11 +1712,11 @@ lwip_netconn_do_writemore(struct netconn *conn  WRITE_DELAYED_PARAM)
         /* don't try to write more than sendbuf */
         len = available;
         if (dontblock) {
-          if (!len) {
+//          if (!len) {
             /* set error according to partial write or not */
             err = (conn->current_msg->msg.w.offset == 0) ? ERR_WOULDBLOCK : ERR_OK;
             goto err_mem;
-          }
+//          }
         } else {
           apiflags |= TCP_WRITE_FLAG_MORE;
         }

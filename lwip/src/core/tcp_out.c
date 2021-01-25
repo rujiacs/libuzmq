@@ -2481,10 +2481,10 @@ tcp_send_empty_ack_netml(struct tcp_pcb *pcb, struct tcp_internal_id *tmpworker,
   pcb->ts_lastacksent = pcb->rcv_nxt;
 #endif
 
-  fprintf(stdout, "[%s][%d]: send empty ack %u->%u, tcp seq %u, ack %u, intseq(intack) %u, inttun %u\n",
-				  __FILE__, __LINE__, pcb->local_id, tmpworker->inid,
-				  pcb->snd_nxt, pcb->rcv_nxt,
-				  tmpworker->intack, tmpworker->inttunl);
+//  fprintf(stdout, "[%s][%d]: send empty ack %u->%u, tcp seq %u, ack %u, intseq(intack) %u, inttun %u\n",
+//				  __FILE__, __LINE__, pcb->local_id, tmpworker->inid,
+//				  pcb->snd_nxt, pcb->rcv_nxt,
+//				  tmpworker->intack, tmpworker->inttunl);
 
   LWIP_DEBUGF(TCP_OUTPUT_DEBUG,
               ("tcp_output: sending ACK for %"U32_F"\n", pcb->rcv_nxt));

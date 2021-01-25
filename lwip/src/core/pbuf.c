@@ -243,6 +243,7 @@ pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
         q = (struct pbuf *)memp_malloc(MEMP_PBUF_POOL);
         if (q == NULL) {
           PBUF_POOL_IS_EMPTY();
+		  fprintf(stdout, "[%s][%d]: pbuf memp is full\n", __FILE__, __LINE__);
           /* free chain so far allocated */
           if (p) {
             pbuf_free(p);
