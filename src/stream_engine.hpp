@@ -150,6 +150,15 @@ namespace zmq
 
 		bool is_ctl;
 
+		unsigned char *outpos;
+		size_t outsize;
+		i_encoder *encoder;
+
+		uint16_t last_remote;
+		bool is_msg_end;
+		bool is_hot;
+
+#if 0
 		class outctl {
 		public:
 			unsigned char *outpos;
@@ -176,7 +185,7 @@ namespace zmq
 		std::map<uint16_t, unsigned> targets;
 
 		bool is_id_set = false;
-
+#endif
         //  Metadata to be attached to received messages. May be NULL.
         metadata_t *metadata;
 

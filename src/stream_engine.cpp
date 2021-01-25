@@ -72,6 +72,12 @@ zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_,
     inpos (NULL),
     insize (0),
     decoder (NULL),
+	outpos (NULL),
+	outsize (0),
+	encoder (NULL),
+	last_remote (UINT16_MAX),
+	is_msg_end (true),
+	is_hot (false),
     metadata (NULL),
     handshaking (true),
     greeting_size (v2_greeting_size),
@@ -170,11 +176,7 @@ zmq::stream_engine_t::~stream_engine_t ()
         }
     }
 
-	for (unsigned i = 0; i < num_target; i++) {
-		LIBZMQ_DELETE(outputs[i].encoder);
-		LIBZMQ_DELETE(outputs[i].hotencoder);
-	}
-
+	LIBZMQ_DELETE(encoder);
     LIBZMQ_DELETE(decoder);
     LIBZMQ_DELETE(mechanism);
 }
@@ -204,15 +206,10 @@ void zmq::stream_engine_t::plug (io_thread_t *io_thread_,
 	decoder = new (std::nothrow)v2_decoder_t(in_batch_size, options.maxmsgsize);
 	alloc_assert(decoder);
 
-	if (is_ctl) {
-		outputs.push_back(outctl());
-		num_target++;
-		output = &outputs[0];
-		output->encoder = new (std::nothrow)v2_encoder_t(out_batch_size);
-		alloc_assert(output->encoder);
-	}
-	else {
-		num_target = 0;
+	encoder = new (std::nothrow)v2_encoder_t(out_batch_size);
+	alloc_assert(encoder);
+
+	if (!is_ctl) {
 		next_msg = &stream_engine_t::pull_msg_from_session;
 		process_msg = &stream_engine_t::push_msg_to_session;
 	}
@@ -225,81 +222,6 @@ void zmq::stream_engine_t::plug (io_thread_t *io_thread_,
 	//  Flush all the data that may have been already received downstream.
 	in_event();
 }
-
-#if 0
-void zmq::stream_engine_t::plug (io_thread_t *io_thread_,
-    session_base_t *session_)
-{
-    zmq_assert (!plugged);
-    plugged = true;
-
-    //  Connect to session object.
-    zmq_assert (!session);
-    zmq_assert (session_);
-    session = session_;
-    socket = session-> get_socket ();
-
-    //  Connect to I/O threads poller object.
-    io_object_t::plug (io_thread_);
-    handle = add_fd_lwip (s);
-//	fprintf(stdout, "[%s][%d] add fd %d\n", __FILE__, __LINE__, s);
-//	lwip_handle = selector->add_fd(s, this);
-    io_error = false;
-
-    if (options.raw_socket) {
-        // no handshaking for raw sock, instantiate raw encoder and decoders
-        encoder = new (std::nothrow) raw_encoder_t (out_batch_size);
-        alloc_assert (encoder);
-
-        data_encoder = new (std::nothrow) raw_encoder_t (out_batch_size);
-        alloc_assert (data_encoder);
-
-        decoder = new (std::nothrow) raw_decoder_t (in_batch_size);
-        alloc_assert (decoder);
-
-        // disable handshaking for raw socket
-        handshaking = false;
-
-        next_msg = &stream_engine_t::pull_msg_from_session;
-        process_msg = &stream_engine_t::push_raw_msg_to_session;
-
-        properties_t properties;
-        if (init_properties(properties)) {
-            //  Compile metadata.
-            zmq_assert (metadata == NULL);
-            metadata = new (std::nothrow) metadata_t (properties);
-            alloc_assert (metadata);
-        }
-
-        if (options.raw_notify) {
-            //  For raw sockets, send an initial 0-length message to the
-            // application so that it knows a peer has connected.
-            msg_t connector;
-            connector.init();
-            push_raw_msg_to_session (&connector);
-            connector.close();
-            session->flush ();
-        }
-    }
-    else {
-        // start optional timer, to prevent handshake hanging on no input
-        set_handshake_timer ();
-
-        //  Send the 'length' and 'flags' fields of the routing id message.
-        //  The 'length' field is encoded in the long format.
-        outpos = greeting_send;
-        outpos [outsize++] = 0xff;
-        put_uint64 (&outpos [outsize], options.routing_id_size + 1);
-        outsize += 8;
-        outpos [outsize++] = 0x7f;
-    }
-
-    set_pollin_lwip (handle);
-    set_pollout_lwip (handle);
-    //  Flush all the data that may have been already received downstream.
-    in_event ();
-}
-#endif
 
 void zmq::stream_engine_t::unplug ()
 {
@@ -430,13 +352,111 @@ void zmq::stream_engine_t::in_event ()
     session->flush ();
 }
 
+void zmq::stream_engine_t::data_out_event()
+{
+	bool is_clear = false;
+
+	fprintf(stdout, "[%s][%d]: enter out_event\n", __FILE__, __LINE__);
+
+	while (!is_clear) {
+		outpos = NULL;
+		outsize = encoder->encode(&outpos, 0);
+
+#if 0
+		if (has_remain) {
+			encoder->load_msg(&tx_msg);
+
+			unsigned char *bufptr = outpos + outsize;
+			size_t n = encoder->encode(&bufptr, out_batch_size - outsize);
+
+			zmq_assert(n > 0);
+			if (outpos == NULL)
+				outpos = bufptr;
+			outsize += n;
+
+			if (!(tx_msg.flags() & msg_t::more)) {
+				is_msg_end = true;
+			}
+		}
+#endif
+		while (outsize < (size_t)out_batch_size) {
+			uint16_t remote = 0;
+			uint8_t flags;
+
+			if ((this->*next_msg)(&tx_msg) == -1)
+				break;
+			remote = tx_msg.get_remote_id();
+			flags = tx_msg.flags();
+			fprintf(stdout, "[%s][%d]: load data msg, target %u, size %lu,"
+							" flags %x\n", __FILE__, __LINE__,
+							remote, tx_msg.size(), flags);
+
+			if (last_remote == UINT16_MAX)
+				last_remote = remote;
+			else if (last_remote != remote) {
+				fprintf(stderr, "[%s][%d]: different target!!!\n", __FILE__, __LINE__);
+				zmq_assert(last_remote == remote);
+			}
+
+			encoder->load_msg(&tx_msg);
+
+			unsigned char *bufptr = outpos + outsize;
+			size_t n = encoder->encode(&bufptr, out_batch_size - outsize);
+
+			zmq_assert(n > 0);
+			if (outpos == NULL)
+				outpos = bufptr;
+			outsize += n;
+
+			if (!(flags & msg_t::more)) {
+				fprintf(stdout, "[%s][%d]: end of the message to %u\n",
+								__FILE__, __LINE__, remote);
+				is_msg_end = true;
+				is_hot = (flags & msg_t::netml_hotdata) ? true : false;
+				break;
+			}
+			else
+				is_msg_end = false;
+		}
+
+		if (outsize && is_msg_end) {
+			int nbytes = 0;
+			unsigned nsent = 0;
+
+			while (nsent < outsize) {
+				nbytes = tcp_write(s, outpos, outsize, last_remote, is_hot);
+				if (nbytes < 0) {
+					fprintf(stdout, "[%s][%d]: failed to send\n", __FILE__, __LINE__);
+					reset_pollout_lwip(handle);
+					return;
+				}
+
+				if (nbytes == 0) {
+					fprintf(stdout, "[%s][%d]: block 10 us\n", __FILE__, __LINE__);
+					usleep(10);
+				}
+				else {
+					nsent += nbytes;
+					outpos += nbytes;
+					outsize -= nbytes;
+				}
+			}
+			last_remote = UINT16_MAX;
+		}
+		else if (outsize == 0) {
+			is_clear = true;
+			break;
+		}
+	}
+}
+
 void zmq::stream_engine_t::ctl_out_event()
 {
-	if (!output->outsize) {
-		output->outpos = NULL;
-		output->outsize = output->encoder->encode(&output->outpos, 0);
+	if (!outsize) {
+		outpos = NULL;
+		outsize = encoder->encode(&outpos, 0);
 
-		while (output->outsize < (size_t)out_batch_size) {
+		while (outsize < (size_t)out_batch_size) {
 			if ((this->*next_msg)(&tx_msg) == -1)
 				break;
 //			fprintf(stdout, "[%s][%d]: load ctl msg, target %u, size %lu, flags %x\n",
@@ -447,15 +467,14 @@ void zmq::stream_engine_t::ctl_out_event()
 								__FILE__, __LINE__);
 				continue;
 			}
-			output->encoder->load_msg(&tx_msg);
-			unsigned char *bufptr = output->outpos + output->outsize;
-			size_t n = output->encoder->encode(&bufptr,
-							out_batch_size - output->outsize);
+			encoder->load_msg(&tx_msg);
+			unsigned char *bufptr = outpos + outsize;
+			size_t n = encoder->encode(&bufptr, out_batch_size - outsize);
 
 			zmq_assert(n > 0);
-			if (output->outpos == NULL)
-				output->outpos = bufptr;
-			output->outsize += n;
+			if (outpos == NULL)
+				outpos = bufptr;
+			outsize += n;
 		}
 
 //		if (!output->outsize) {
@@ -465,18 +484,19 @@ void zmq::stream_engine_t::ctl_out_event()
 //		}
 	}
 
-	if (output->outsize) {
-		int nbytes = tcp_write(s, output->outpos, output->outsize, 0 /* is_data */);
+	if (outsize) {
+		int nbytes = tcp_write(s, outpos, outsize, 0 /* is_data */);
 
 		if (nbytes == -1) {
 			reset_pollout_lwip(handle);
 			return;
 		}
-		output->outpos += nbytes;
-		output->outsize -= nbytes;
+		outpos += nbytes;
+		outsize -= nbytes;
 	}
 }
 
+#if 0
 bool zmq::stream_engine_t::can_handle_data()
 {
 	for (unsigned i = 0; i < num_target; i++) {
@@ -615,6 +635,7 @@ void zmq::stream_engine_t::data_out_event()
 		}
 	}
 }
+#endif
 
 void zmq::stream_engine_t::out_event()
 {
