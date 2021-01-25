@@ -108,11 +108,16 @@ static int recvdata(void)
 		goto free_return;
 	}
 
-	if (recv_bytes == sizeof(int)) {
-		int *code = (int*)zmq_msg_data(msg);
+	if (recv_bytes == strlen(TERM_CODE)) {
+		char code[5] = {0};
 
-		UZMQ_DEBUG("Recv code %d", *code);
-		ret = *code;
+		strncpy(code, rx_data, strlen(TERM_CODE));
+
+		UZMQ_DEBUG("Recv code %s", code);
+		if (strcmp(code, TERM_CODE) == 0)
+			ret = 1;
+		else
+			ret = -1;
 	}
 	else {
 		ret = 0;
@@ -189,11 +194,13 @@ int main(int argc, char **argv)
 		if (ret < 0)
 			break;
 
-		if (recvdata() < 0)
-			break;
+//		if (recvdata() < 0)
+//			break;
 	}
 
 	sendterm();
+
+	recvdata();
 	gettimeofday(&tv, NULL);
 
 	time = tv.tv_sec - start_sec + (tv.tv_usec - start_usec) / 1000000.0;

@@ -152,6 +152,26 @@ static int senddata(void)
 	return 0;
 }
 
+static int sendterm(void)
+{
+	zmq_msg_t msg;
+
+	snprintf(data, 5, "%s", TERM_CODE);
+
+	UZMQ_DEBUG("Send TERM");
+	zmq_msg_init_data(&msg, data, 4, NULL, NULL, SERVER_ID);
+
+	while (true) {
+		if (zmq_msg_send(&msg, sock, ZMQ_DATA) == sizeof(int)) break;
+		if (errno == EINTR) continue;
+
+		UZMQ_ERROR("Failed to send term");
+		return -1;
+	}
+	zmq_msg_close(&msg);
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	if (__init() < 0) {
@@ -168,12 +188,13 @@ int main(int argc, char **argv)
 		if (ret < 0)
 			break;
 
-		if (ret == 0) {
-			if (senddata() < 0)
-				break;
-		}
+//		if (ret == 0) {
+//			if (senddata() < 0)
+//				break;
+//		}
 
 		if (ret == 1) {
+			sendterm();
 			UZMQ_DEBUG("recv terminate cmd");
 			break;
 		}
