@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 	gettimeofday(&tv, NULL);
 	start_sec = tv.tv_sec;
 	start_usec = tv.tv_usec;
-	for (int i = 0; i < 100; i++) {
+	for (int i = 0; i < 2; i++) {
 		fprintf(stdout, "[%s][%d]: send %d-th data\n", __FILE__, __LINE__, i);
 		int ret = senddata();
 
