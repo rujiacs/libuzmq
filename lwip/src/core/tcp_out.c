@@ -516,7 +516,7 @@ tcp_write_netml(struct tcp_pcb *pcb, const void *arg, u16_t len,
 	if (!is_hot)
   		tmpworker->inttunl += seglen;
 	tmpworker->intseq += seglen;
-//	tcp_debug_print_netml(seg->tcphdr);
+	tcp_debug_print_netml(seg->tcphdr);
 
     /* first segment of to-be-queued data? */
     if (queue == NULL) {
