@@ -504,19 +504,19 @@ tcp_write_netml(struct tcp_pcb *pcb, const void *arg, u16_t len,
 		TCPH_OFFSET_SETBIT(seg->tcphdr, NETML_COLD);
 	}
 
-	fprintf(stdout, "[%s][%d]: send %u(%u)->%u(%u), seq %u, "
-					"intseq %u, inttunl %u, data len %u, seg->len %u, ",
-					__FILE__, __LINE__,
-					lwip_ntohs(seg->tcphdr->src), pcb->local_id,
-					lwip_ntohs(seg->tcphdr->dest), remote_id,
-					lwip_ntohl(seg->tcphdr->seqno),
-					tmpworker->intseq,
-					tmpworker->inttunl, seglen, seg->len);
+//	fprintf(stdout, "[%s][%d]: send %u(%u)->%u(%u), seq %u, "
+//					"intseq %u, inttunl %u, data len %u, seg->len %u, ",
+//					__FILE__, __LINE__,
+//					lwip_ntohs(seg->tcphdr->src), pcb->local_id,
+//					lwip_ntohs(seg->tcphdr->dest), remote_id,
+//					lwip_ntohl(seg->tcphdr->seqno),
+//					tmpworker->intseq,
+//					tmpworker->inttunl, seglen, seg->len);
 
 	if (!is_hot)
   		tmpworker->inttunl += seglen;
 	tmpworker->intseq += seglen;
-	tcp_debug_print_netml(seg->tcphdr);
+//	tcp_debug_print_netml(seg->tcphdr);
 
     /* first segment of to-be-queued data? */
     if (queue == NULL) {
@@ -2481,10 +2481,10 @@ tcp_send_empty_ack_netml(struct tcp_pcb *pcb, struct tcp_internal_id *tmpworker,
   pcb->ts_lastacksent = pcb->rcv_nxt;
 #endif
 
-  fprintf(stdout, "[%s][%d]: send empty ack %u->%u, tcp seq %u, ack %u, intseq(intack) %u, inttun %u\n",
-				  __FILE__, __LINE__, pcb->local_id, tmpworker->inid,
-				  pcb->snd_nxt, pcb->rcv_nxt,
-				  tmpworker->intack, tmpworker->inttunl);
+//  fprintf(stdout, "[%s][%d]: send empty ack %u->%u, tcp seq %u, ack %u, intseq(intack) %u, inttun %u\n",
+//				  __FILE__, __LINE__, pcb->local_id, tmpworker->inid,
+//				  pcb->snd_nxt, pcb->rcv_nxt,
+//				  tmpworker->intack, tmpworker->inttunl);
 
   LWIP_DEBUGF(TCP_OUTPUT_DEBUG,
               ("tcp_output: sending ACK for %"U32_F"\n", pcb->rcv_nxt));
